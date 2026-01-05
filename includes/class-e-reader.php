@@ -4,7 +4,7 @@
  *
  * This contains an abstract class of an E-Reader
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 namespace Send_To_E_Reader;
@@ -14,7 +14,7 @@ namespace Send_To_E_Reader;
  *
  * @since 0.3
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  * @author Alex Kirk
  */
 abstract class E_Reader {
@@ -178,7 +178,7 @@ abstract class E_Reader {
 		$this->ebook_title = $title;
 		$this->ebook_author = $author;
 
-		$dir = rtrim( sys_get_temp_dir(), '/' ) . '/friends_send_to_e_reader';
+		$dir = rtrim( sys_get_temp_dir(), '/' ) . '/send_to_e_reader';
 		if ( ! file_exists( $dir ) ) {
 			mkdir( $dir );
 		}

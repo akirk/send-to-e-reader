@@ -1,16 +1,16 @@
 <?php
 /**
- * Plugin name: Friends Send to E-Reader
+ * Plugin name: Send to E-Reader
  * Plugin author: Alex Kirk
- * Plugin URI: https://github.com/akirk/friends-send-to-e-reader
+ * Plugin URI: https://github.com/akirk/send-to-e-reader
  * Version: 0.8.4
  *
  * Description: Send posts to your e-reader. Works standalone or integrates with the Friends plugin.
  *
  * License: GPL2
- * Text Domain: friends
+ * Text Domain: send-to-e-reader
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 /**
@@ -18,21 +18,21 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'FRIENDS_SEND_TO_E_READER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'FRIENDS_SEND_TO_E_READER_VERSION', '0.8.4' );
+define( 'SEND_TO_E_READER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'SEND_TO_E_READER_VERSION', '0.8.4' );
 
 require 'libs/autoload.php';
 require_once __DIR__ . '/includes/class-send-to-e-reader.php';
 require_once __DIR__ . '/includes/class-e-reader.php';
 
-add_filter( 'friends_send_to_e_reader', '__return_true' );
+add_filter( 'send_to_e_reader', '__return_true' );
 
 /**
  * Initialize the plugin with e-reader classes.
  *
- * @param Friends\Send_To_E_Reader $send_to_e_reader The Send_To_E_Reader instance.
+ * @param Send_To_E_Reader\Send_To_E_Reader $send_to_e_reader The Send_To_E_Reader instance.
  */
-function friends_send_to_e_reader_register_ereaders( $send_to_e_reader ) {
+function send_to_e_reader_register_ereaders( $send_to_e_reader ) {
 	require_once __DIR__ . '/includes/class-e-reader-generic-email.php';
 	$send_to_e_reader->register_ereader( 'Send_To_E_Reader\E_Reader_Generic_Email' );
 
@@ -57,7 +57,7 @@ add_action(
 	'friends_loaded',
 	function ( $friends ) {
 		$send_to_e_reader = new Send_To_E_Reader\Send_To_E_Reader( $friends );
-		friends_send_to_e_reader_register_ereaders( $send_to_e_reader );
+		send_to_e_reader_register_ereaders( $send_to_e_reader );
 	}
 );
 
@@ -70,7 +70,7 @@ add_action(
 			return;
 		}
 		$send_to_e_reader = new Send_To_E_Reader\Send_To_E_Reader( null );
-		friends_send_to_e_reader_register_ereaders( $send_to_e_reader );
+		send_to_e_reader_register_ereaders( $send_to_e_reader );
 	},
 	20
 );

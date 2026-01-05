@@ -2,7 +2,7 @@
 /**
  * Tests for the E_Reader classes.
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 use PHPUnit\Framework\TestCase;

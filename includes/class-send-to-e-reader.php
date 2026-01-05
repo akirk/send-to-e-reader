@@ -1,20 +1,20 @@
 <?php
 /**
- * Friends Send To E-Reader
+ * Send To E-Reader
  *
  * This contains the Send to E-Reader functions.
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 namespace Send_To_E_Reader;
 
 /**
- * This is the class for the sending posts to an E-Reader for the Friends Plugin.
+ * This is the class for the sending posts to an E-Reader.
  *
  * @since 0.3
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  * @author Alex Kirk
  */
 class Send_To_E_Reader {
@@ -25,11 +25,20 @@ class Send_To_E_Reader {
 	 */
 	private $friends;
 
-	const POST_META = 'friends-sent-to-ereader';
-	const EREADERS_OPTION = 'friends-send-to-e-reader_readers';
-	const READING_SUMMARY_OPTION = 'friends-send-to-e-reader_reading-summary';
-	const DOWNLOAD_PASSWORD_OPTION = 'friends_send_to_e_reader_download_password';
-	const CRON_OPTION = 'friends-send-to-e-reader_cron';
+	const POST_META = 'sent-to-ereader';
+	const EREADERS_OPTION = 'send-to-e-reader_readers';
+	const READING_SUMMARY_OPTION = 'send-to-e-reader_reading-summary';
+	const DOWNLOAD_PASSWORD_OPTION = 'send_to_e_reader_download_password';
+	const CRON_OPTION = 'send-to-e-reader_cron';
+
+	const USER_OPTION = 'send_to_e_reader';
+
+	const OLD_POST_META = 'friends-sent-to-ereader';
+	const OLD_EREADERS_OPTION = 'friends-send-to-e-reader_readers';
+	const OLD_READING_SUMMARY_OPTION = 'friends-send-to-e-reader_reading-summary';
+	const OLD_DOWNLOAD_PASSWORD_OPTION = 'friends_send_to_e_reader_download_password';
+	const OLD_CRON_OPTION = 'friends-send-to-e-reader_cron';
+	const OLD_USER_OPTION = 'friends_send_to_e_reader';
 
 	private $ereaders = null;
 	private $ereader_classes = array();
@@ -69,7 +78,7 @@ class Send_To_E_Reader {
 				private $paths = array();
 
 				public function __construct() {
-					$this->paths[] = FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'templates/';
+					$this->paths[] = SEND_TO_E_READER_PLUGIN_DIR . 'templates/';
 				}
 
 				public function get_template_part( $slug, $name = null, $args = array(), $echo = true ) {
@@ -116,7 +125,56 @@ class Send_To_E_Reader {
 	 */
 	public function __construct( $friends = null ) {
 		$this->friends = $friends;
+		$this->maybe_migrate_options();
 		$this->register_hooks();
+	}
+
+	/**
+	 * Migrate options from old "friends-" prefixed names to new names.
+	 */
+	private function maybe_migrate_options() {
+		$old_ereaders = get_option( self::OLD_EREADERS_OPTION );
+		if ( false !== $old_ereaders && false === get_option( self::EREADERS_OPTION ) ) {
+			update_option( self::EREADERS_OPTION, $old_ereaders );
+			delete_option( self::OLD_EREADERS_OPTION );
+		}
+
+		$old_summary = get_option( self::OLD_READING_SUMMARY_OPTION );
+		if ( false !== $old_summary && false === get_option( self::READING_SUMMARY_OPTION ) ) {
+			update_option( self::READING_SUMMARY_OPTION, $old_summary );
+			delete_option( self::OLD_READING_SUMMARY_OPTION );
+		}
+
+		$old_password = get_option( self::OLD_DOWNLOAD_PASSWORD_OPTION );
+		if ( false !== $old_password && false === get_option( self::DOWNLOAD_PASSWORD_OPTION ) ) {
+			update_option( self::DOWNLOAD_PASSWORD_OPTION, $old_password );
+			delete_option( self::OLD_DOWNLOAD_PASSWORD_OPTION );
+		}
+
+		$old_cron = get_option( self::OLD_CRON_OPTION );
+		if ( false !== $old_cron && false === get_option( self::CRON_OPTION ) ) {
+			update_option( self::CRON_OPTION, $old_cron );
+			delete_option( self::OLD_CRON_OPTION );
+		}
+	}
+
+	/**
+	 * Get user option with migration from old option name.
+	 *
+	 * @param int $user_id The user ID.
+	 * @return mixed The option value.
+	 */
+	private function get_user_ereader_option( $user_id ) {
+		$value = get_user_option( self::USER_OPTION, $user_id );
+		if ( false === $value ) {
+			$old_value = get_user_option( self::OLD_USER_OPTION, $user_id );
+			if ( false !== $old_value ) {
+				update_user_option( $user_id, self::USER_OPTION, $old_value );
+				delete_user_option( $user_id, self::OLD_USER_OPTION );
+				return $old_value;
+			}
+		}
+		return $value;
 	}
 
 	/**
@@ -246,13 +304,13 @@ class Send_To_E_Reader {
 
 	public function wp_enqueue_scripts() {
 		if ( is_user_logged_in() && \Friends\Friends::on_frontend() ) {
-			$handle = 'friends-send-to-e-reader';
-			$file = 'friends-send-to-e-reader.js';
-			$version = FRIENDS_SEND_TO_E_READER_VERSION;
+			$handle = 'send-to-e-reader';
+			$file = 'send-to-e-reader.js';
+			$version = SEND_TO_E_READER_VERSION;
 			wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ) );
 			wp_localize_script(
 				$handle,
-				'friends_send_to_ereader',
+				'send_to_ereader',
 				array(
 					'ajaxurl' => admin_url( 'admin-ajax.php' ),
 					'nonce'   => wp_create_nonce( 'send-post-to-e-reader' ),
@@ -284,9 +342,9 @@ class Send_To_E_Reader {
 		if ( ! $this->friends_is_available() ) {
 			return;
 		}
-		$handle = 'friends-send-to-e-reader';
-		$file = 'friends-send-to-e-reader.js';
-		$version = FRIENDS_SEND_TO_E_READER_VERSION;
+		$handle = 'send-to-e-reader';
+		$file = 'send-to-e-reader.js';
+		$version = SEND_TO_E_READER_VERSION;
 		wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends-admin' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ) );
 	}
 
@@ -299,7 +357,7 @@ class Send_To_E_Reader {
 				__( 'E-Readers', 'friends' ),
 				__( 'E-Readers', 'friends' ),
 				'edit_private_posts',
-				'friends-send-to-e-reader',
+				'send-to-e-reader',
 				array( $this, 'configure_ereaders' )
 			);
 			add_submenu_page(
@@ -307,7 +365,7 @@ class Send_To_E_Reader {
 				__( 'E-Reader Settings', 'friends' ),
 				__( 'E-Reader Settings', 'friends' ),
 				'edit_private_posts',
-				'friends-send-to-e-reader-settings',
+				'send-to-e-reader-settings',
 				array( $this, 'settings' )
 			);
 		} else {
@@ -316,7 +374,7 @@ class Send_To_E_Reader {
 				__( 'E-Readers', 'friends' ),
 				__( 'E-Readers', 'friends' ),
 				'edit_private_posts',
-				'friends-send-to-e-reader',
+				'send-to-e-reader',
 				array( $this, 'configure_ereaders_with_friends_about' )
 			);
 			add_submenu_page(
@@ -324,7 +382,7 @@ class Send_To_E_Reader {
 				__( 'Send to E-Reader', 'friends' ),
 				__( 'Send to E-Reader', 'friends' ),
 				'edit_private_posts',
-				'friends-send-to-e-reader-settings',
+				'send-to-e-reader-settings',
 				array( $this, 'settings' )
 			);
 		}
@@ -345,7 +403,7 @@ class Send_To_E_Reader {
 		if ( empty( $ereaders ) ) {
 			return;
 		}
-		$selected = get_user_option( 'friends_send_to_e_reader', $friend->ID );
+		$selected = $this->get_user_ereader_option( $friend->ID );
 		?>
 		<td class="column-send-to-e-reader">
 			<select name="send-to-e-reader[<?php echo esc_attr( $friend->ID ); ?>]">
@@ -370,15 +428,15 @@ class Send_To_E_Reader {
 			}
 
 			$ereader_notification = $_POST['send-to-e-reader'][ $friend_id ];
-			if ( get_user_option( 'friends_send_to_e_reader', $friend_id ) !== $ereader_notification ) {
-				update_user_option( $friend_id, 'friends_send_to_e_reader', $ereader_notification );
+			if ( $this->get_user_ereader_option( $friend_id ) !== $ereader_notification ) {
+				update_user_option( $friend_id, self::USER_OPTION, $ereader_notification );
 			}
 		}
 	}
 
 	public function friends_template_paths( $paths ) {
 		$c = 50;
-		$my_path = FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'templates/';
+		$my_path = SEND_TO_E_READER_PLUGIN_DIR . 'templates/';
 		while ( isset( $paths[ $c ] ) && $my_path !== $paths[ $c ] ) {
 			$c += 1;
 		}
@@ -556,8 +614,8 @@ class Send_To_E_Reader {
 				'active' => $active,
 				'title'  => __( 'Send to E-Reader', 'friends' ),
 				'menu'   => array(
-					__( 'E-Readers', 'friends' ) => 'friends-send-to-e-reader',
-					__( 'Settings' )             => 'friends-send-to-e-reader-settings', // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+					__( 'E-Readers', 'friends' ) => 'send-to-e-reader',
+					__( 'Settings' )             => 'send-to-e-reader-settings', // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 				),
 			)
 		);
@@ -614,12 +672,12 @@ class Send_To_E_Reader {
 			$content .= '</p></blockquote>' . PHP_EOL;
 			$content .= '<!-- /wp:quote -->';
 			$content .= '<!-- wp:paragraph -->' . PHP_EOL . '<p>';
-			$content .= apply_filters( 'friends_send_to_ereader_reading_summary_paragraph_content', '', $post );
+			$content .= apply_filters( 'send_to_ereader_reading_summary_paragraph_content', '', $post );
 			$content .= '</p>' . PHP_EOL;
 			$content .= '<!-- /wp:paragraph -->';
 			$content .= '</div>' . PHP_EOL;
 			$content .= '<!-- /wp:group -->';
-			$post_content[] = apply_filters( 'friends_send_to_e_reader_summary_entry', $content, $post );
+			$post_content[] = apply_filters( 'send_to_e_reader_summary_entry', $content, $post );
 		}
 
 		remove_filter( 'private_title_format', array( $this, 'private_title_format' ) );
@@ -690,7 +748,7 @@ class Send_To_E_Reader {
 	 * Display the configure e-readers page for the plugin.
 	 */
 	public function settings() {
-		$nonce_value = 'friends-send-to-e-reader';
+		$nonce_value = 'send-to-e-reader';
 
 		if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( $_POST['_wpnonce'], $nonce_value ) ) {
 			$summary = array();
@@ -703,7 +761,7 @@ class Send_To_E_Reader {
 		}
 		$summary = get_option( self::READING_SUMMARY_OPTION, array() );
 
-		$this->settings_header( 'friends-send-to-e-reader-settings' );
+		$this->settings_header( 'send-to-e-reader-settings' );
 
 		$all_friends = array();
 		if ( $this->friends_is_available() && class_exists( '\Friends\User_Query' ) ) {
@@ -737,7 +795,7 @@ class Send_To_E_Reader {
 		$ereaders = $this->get_ereaders();
 
 		$friends = $this->friends_is_available() ? \Friends\Friends::get_instance() : null;
-		$nonce_value = 'friends-send-to-e-reader';
+		$nonce_value = 'send-to-e-reader';
 		if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( $_POST['_wpnonce'], $nonce_value ) ) {
 			$delete_ereaders = $ereaders;
 			foreach ( $_POST['ereaders'] as $id => $ereader_data ) {
@@ -779,7 +837,7 @@ class Send_To_E_Reader {
 			$this->update_ereaders( $ereaders );
 		}
 
-		$this->settings_header( 'friends-send-to-e-reader' );
+		$this->settings_header( 'send-to-e-reader' );
 
 		$this->get_template_loader()->get_template_part(
 			'admin/configure-ereaders',
@@ -829,7 +887,7 @@ class Send_To_E_Reader {
 			null,
 			array(
 				'ereaders' => $this->get_active_email_ereaders(),
-				'selected' => get_user_option( 'friends_send_to_e_reader', $friend->ID ),
+				'selected' => $this->get_user_ereader_option( $friend->ID ),
 			)
 		);
 		$this->get_template_loader()->get_template_part(
@@ -849,9 +907,9 @@ class Send_To_E_Reader {
 	function edit_friend_notifications_submit( \Friends\User $friend ) {
 		$ereaders = get_option( self::EREADERS_OPTION, array() );
 		if ( isset( $_POST['send-to-e-reader'] ) && isset( $ereaders[ $_POST['send-to-e-reader'] ] ) ) {
-			update_user_option( $friend->ID, 'friends_send_to_e_reader', $_POST['send-to-e-reader'] );
+			update_user_option( $friend->ID, self::USER_OPTION, $_POST['send-to-e-reader'] );
 		} else {
-			delete_user_option( $friend->ID, 'friends_send_to_e_reader' );
+			delete_user_option( $friend->ID, self::USER_OPTION );
 		}
 	}
 
@@ -866,7 +924,7 @@ class Send_To_E_Reader {
 		}
 
 		$ereaders = get_option( self::EREADERS_OPTION, array() );
-		$id = get_user_option( 'friends_send_to_e_reader', $post->post_author );
+		$id = $this->get_user_ereader_option( $post->post_author );
 		if ( false !== $id && isset( $ereaders[ $id ] ) ) {
 			$ereaders[ $id ]->send_posts( array( $post ), $ereaders[ $id ]['email'] );
 		}
@@ -1109,7 +1167,7 @@ class Send_To_E_Reader {
 		$ereaders = get_option( self::EREADERS_OPTION, array() );
 		if ( empty( $ereaders ) ) {
 			$ereaders = array();
-			require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-download.php';
+			require_once SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-download.php';
 			$ereader = new E_Reader_Download( __( 'Download ePub', 'friends' ) );
 			$ereader->active = true;
 			$id = $ereader->get_id();

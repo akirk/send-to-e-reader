@@ -4,7 +4,7 @@
  *
  * This contains the class for a Tolino E-Reader
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 namespace Send_To_E_Reader;
@@ -14,7 +14,7 @@ namespace Send_To_E_Reader;
  *
  * @since 0.3
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  * @author Alex Kirk
  */
 class E_Reader_Tolino extends E_Reader {

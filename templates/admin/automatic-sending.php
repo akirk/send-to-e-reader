@@ -2,7 +2,7 @@
 /**
  * E-Reader Automatic Sending Settings (inserted in user pages)
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 return; // Not ready.

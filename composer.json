@@ -1,5 +1,5 @@
 {
-    "name": "akirk/friends-send-to-e-reader",
+    "name": "akirk/send-to-e-reader",
     "require-dev": {
         "dealerdirect/phpcodesniffer-composer-installer": "*",
         "object-calisthenics/phpcs-calisthenics-rules": "*",

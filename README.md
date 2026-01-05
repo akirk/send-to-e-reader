@@ -1,4 +1,4 @@
-# Friends Send to E-Reader
+# Send to E-Reader
 
 Send new articles directly to your e-reader via e-mail or download the ePub.
 
@@ -13,7 +13,7 @@ Send new articles directly to your e-reader via e-mail or download the ePub.
 
 See the post [Subscribing to RSS Feeds on your E-Reader using your own WordPress blog](https://wpfriends.at/2021/09/20/subscribing-to-rss-feeds-on-your-e-reader/) for more details on how it works.
 
-This plugin is meant to be used with the [Friends plugin](https://github.com/akirk/friends/).
+This plugin works standalone or integrates with the [Friends plugin](https://github.com/akirk/friends/).
 
 ## Changelog
 
@@ -60,9 +60,9 @@ This plugin is meant to be used with the [Friends plugin](https://github.com/aki
 - Allow downloading the ePub.
 - Theoretically add support for Tolino. Not functional because Thalia doesn't want to provide OAuth2 credentials.
 
-[#12]: https://github.com/akirk/friends-send-to-e-reader/pull/12
-[#11]: https://github.com/akirk/friends-send-to-e-reader/pull/11
-[#9]: https://github.com/akirk/friends-send-to-e-reader/pull/9
-[#7]: https://github.com/akirk/friends-send-to-e-reader/pull/7
-[#6]: https://github.com/akirk/friends-send-to-e-reader/pull/6
-[#5]: https://github.com/akirk/friends-send-to-e-reader/pull/5
+[#12]: https://github.com/akirk/send-to-e-reader/pull/12
+[#11]: https://github.com/akirk/send-to-e-reader/pull/11
+[#9]: https://github.com/akirk/send-to-e-reader/pull/9
+[#7]: https://github.com/akirk/send-to-e-reader/pull/7
+[#6]: https://github.com/akirk/send-to-e-reader/pull/6
+[#5]: https://github.com/akirk/send-to-e-reader/pull/5

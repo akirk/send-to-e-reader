@@ -2,7 +2,7 @@
 /**
  * PHPUnit bootstrap file for Friends Send to E-Reader tests.
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 namespace Friends {

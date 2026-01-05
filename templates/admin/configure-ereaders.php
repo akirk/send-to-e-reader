@@ -2,7 +2,7 @@
 /**
  * Configure E-Readers
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 $save_changes = __( 'Save Changes', 'friends' );

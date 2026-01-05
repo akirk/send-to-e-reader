@@ -2,7 +2,7 @@
 /**
  * This template contains the output of a simple list of posts.
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 ?>
