@@ -7,7 +7,7 @@
  * @package Friends_Send_To_E_Reader
  */
 
-namespace Friends;
+namespace Send_To_E_Reader;
 
 /**
  * This is the class for the sending posts to a generic E-Reader for the Friends Plugin.
@@ -88,10 +88,29 @@ class E_Reader_Generic_Email extends E_Reader {
 			return false;
 		}
 
-		$friends = Friends::get_instance();
-		$friends->notifications->send_mail( $this->email, $this->ebook_title, $this->ebook_title, array(), array( $file ) );
+		$this->send_email_with_attachment( $file );
 		unlink( $file );
 		return array( 'send-to-e-reader' => 'success', 'title' => $this->ebook_title, 'author' => $this->ebook_author );
+	}
+
+	/**
+	 * Send email with attachment, using Friends if available or wp_mail as fallback.
+	 *
+	 * @param string $file The file path to attach.
+	 */
+	protected function send_email_with_attachment( $file ) {
+		if ( class_exists( '\Friends\Friends' ) ) {
+			$friends = \Friends\Friends::get_instance();
+			$friends->notifications->send_mail( $this->email, $this->ebook_title, $this->ebook_title, array(), array( $file ) );
+		} else {
+			wp_mail(
+				$this->email,
+				$this->ebook_title,
+				$this->ebook_title,
+				array( 'Content-Type: text/plain; charset=UTF-8' ),
+				array( $file )
+			);
+		}
 	}
 
 }

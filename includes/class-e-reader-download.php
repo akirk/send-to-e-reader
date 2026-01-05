@@ -7,7 +7,7 @@
  * @package Friends_Send_To_E_Reader
  */
 
-namespace Friends;
+namespace Send_To_E_Reader;
 
 /**
  * This is the class for the sending posts to a generic E-Reader for the Friends Plugin.

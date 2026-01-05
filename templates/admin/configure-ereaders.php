@@ -83,15 +83,16 @@ $save_changes = __( 'Save Changes', 'friends' );
 				),
 			)
 		);
-		echo '<br/>';
-
-		echo esc_html(
-			sprintf(
-				// translators: %s is an e-mail address.
-				__( 'Make sure that you whitelist the e-mail address which the friend plugin sends its e-mails from: %s', 'friends' ),
-				$args['friends']->notifications->get_friends_plugin_from_email_address()
-			)
-		);
+		if ( $args['friends'] && isset( $args['friends']->notifications ) ) {
+			echo '<br/>';
+			echo esc_html(
+				sprintf(
+					// translators: %s is an e-mail address.
+					__( 'Make sure that you whitelist the e-mail address which the friend plugin sends its e-mails from: %s', 'friends' ),
+					$args['friends']->notifications->get_friends_plugin_from_email_address()
+				)
+			);
+		}
 
 		?>
 	</p>

@@ -61,12 +61,14 @@
 						<li><span class="description"><?php echo esc_html( $description ); ?></span> <span class="download-preview"><tt class="friends-sample-url"></tt><tt>?epub</tt><tt class="download_password_preview"><?php echo esc_html( $args['download_password'] ); ?></tt><tt>=<?php echo esc_html( $key ); ?></tt></span></li>
 						<?php endforeach; ?>
 					</ul>
+					<?php if ( ! empty( $args['all-friends'] ) && is_object( $args['all-friends'] ) ) : ?>
 					<p><select id="all-friends-preview">
 						<option value=""><?php esc_html_e( 'Preview URL for a friend', 'friends' ); ?></option>
 						<?php foreach ( $args['all-friends']->get_results() as $friend ) : ?>
 						<option value="<?php echo esc_attr( $friend->get_local_friends_page_url() ); ?>"><?php echo esc_html( $friend->display_name ); ?></option>
 						<?php endforeach; ?>
 					</select>
+					<?php endif; ?>
 				</fieldset>
 			</td>
 		</tr>

@@ -4,9 +4,8 @@
  * Plugin author: Alex Kirk
  * Plugin URI: https://github.com/akirk/friends-send-to-e-reader
  * Version: 0.8.4
- * Requires Plugins: friends
  *
- * Description: Send friend posts to your e-reader.
+ * Description: Send posts to your e-reader. Works standalone or integrates with the Friends plugin.
  *
  * License: GPL2
  * Text Domain: friends
@@ -27,29 +26,53 @@ require_once __DIR__ . '/includes/class-send-to-e-reader.php';
 require_once __DIR__ . '/includes/class-e-reader.php';
 
 add_filter( 'friends_send_to_e_reader', '__return_true' );
+
+/**
+ * Initialize the plugin with e-reader classes.
+ *
+ * @param Friends\Send_To_E_Reader $send_to_e_reader The Send_To_E_Reader instance.
+ */
+function friends_send_to_e_reader_register_ereaders( $send_to_e_reader ) {
+	require_once __DIR__ . '/includes/class-e-reader-generic-email.php';
+	$send_to_e_reader->register_ereader( 'Send_To_E_Reader\E_Reader_Generic_Email' );
+
+	require_once __DIR__ . '/includes/class-e-reader-kindle.php';
+	$send_to_e_reader->register_ereader( 'Send_To_E_Reader\E_Reader_Kindle' );
+
+	require_once __DIR__ . '/includes/class-e-reader-pocketbook.php';
+	$send_to_e_reader->register_ereader( 'Send_To_E_Reader\E_Reader_Pocketbook' );
+
+	/*
+	Not ready.
+	require_once __DIR__ . '/includes/class-e-reader-tolino.php';
+	$send_to_e_reader->register_ereader( 'Send_To_E_Reader\E_Reader_Tolino' );
+	*/
+
+	require_once __DIR__ . '/includes/class-e-reader-download.php';
+	$send_to_e_reader->register_ereader( 'Send_To_E_Reader\E_Reader_Download' );
+}
+
+// Initialize with Friends plugin if available.
 add_action(
 	'friends_loaded',
 	function ( $friends ) {
-		$send_to_e_reader = new Friends\Send_To_E_Reader( $friends );
-
-		require_once __DIR__ . '/includes/class-e-reader-generic-email.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Generic_Email' );
-
-		require_once __DIR__ . '/includes/class-e-reader-kindle.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Kindle' );
-
-		require_once __DIR__ . '/includes/class-e-reader-pocketbook.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Pocketbook' );
-
-		/*
-		Not ready.
-		require_once __DIR__ . '/includes/class-e-reader-tolino.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Tolino' );
-		*/
-
-		require_once __DIR__ . '/includes/class-e-reader-download.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Download' );
+		$send_to_e_reader = new Send_To_E_Reader\Send_To_E_Reader( $friends );
+		friends_send_to_e_reader_register_ereaders( $send_to_e_reader );
 	}
 );
 
-register_activation_hook( __FILE__, array( 'Friends\Send_To_E_Reader', 'activate_plugin' ) );
+// Fallback initialization when Friends plugin is not active.
+add_action(
+	'plugins_loaded',
+	function () {
+		if ( class_exists( 'Friends\Friends' ) ) {
+			// Friends plugin will handle initialization via friends_loaded hook.
+			return;
+		}
+		$send_to_e_reader = new Send_To_E_Reader\Send_To_E_Reader( null );
+		friends_send_to_e_reader_register_ereaders( $send_to_e_reader );
+	},
+	20
+);
+
+register_activation_hook( __FILE__, array( 'Send_To_E_Reader\Send_To_E_Reader', 'activate_plugin' ) );

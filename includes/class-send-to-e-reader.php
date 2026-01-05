@@ -7,7 +7,7 @@
  * @package Friends_Send_To_E_Reader
  */
 
-namespace Friends;
+namespace Send_To_E_Reader;
 
 /**
  * This is the class for the sending posts to an E-Reader for the Friends Plugin.
@@ -19,9 +19,9 @@ namespace Friends;
  */
 class Send_To_E_Reader {
 	/**
-	 * Contains a reference to the Friends class.
+	 * Contains a reference to the Friends class (if available).
 	 *
-	 * @var Friends
+	 * @var \Friends\Friends|null
 	 */
 	private $friends;
 
@@ -37,38 +37,130 @@ class Send_To_E_Reader {
 	private $download_request = false;
 
 	/**
+	 * Whether the Friends plugin is available.
+	 *
+	 * @return bool
+	 */
+	public function friends_is_available() {
+		return class_exists( '\Friends\Friends' );
+	}
+
+	/**
+	 * Get the template loader (Friends or fallback).
+	 *
+	 * @return object
+	 */
+	public function get_template_loader() {
+		if ( $this->friends_is_available() ) {
+			return \Friends\Friends::template_loader();
+		}
+		return $this->get_fallback_template_loader();
+	}
+
+	/**
+	 * Get a simple fallback template loader for standalone mode.
+	 *
+	 * @return object
+	 */
+	private function get_fallback_template_loader() {
+		static $loader = null;
+		if ( null === $loader ) {
+			$loader = new class {
+				private $paths = array();
+
+				public function __construct() {
+					$this->paths[] = FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'templates/';
+				}
+
+				public function get_template_part( $slug, $name = null, $args = array(), $echo = true ) {
+					$template = $this->locate_template( $slug, $name );
+					if ( ! $template ) {
+						return '';
+					}
+
+					if ( ! $echo ) {
+						return $template;
+					}
+
+					if ( ! empty( $args ) && is_array( $args ) ) {
+						extract( $args ); // phpcs:ignore WordPress.PHP.DontExtract.extract_extract
+					}
+					include $template;
+				}
+
+				private function locate_template( $slug, $name = null ) {
+					$templates = array();
+					if ( $name ) {
+						$templates[] = "{$slug}-{$name}.php";
+					}
+					$templates[] = "{$slug}.php";
+
+					foreach ( $templates as $template ) {
+						foreach ( $this->paths as $path ) {
+							if ( file_exists( $path . $template ) ) {
+								return $path . $template;
+							}
+						}
+					}
+					return '';
+				}
+			};
+		}
+		return $loader;
+	}
+
+	/**
 	 * Constructor
 	 *
-	 * @param Friends $friends A reference to the Friends object.
+	 * @param \Friends\Friends|null $friends A reference to the Friends object, or null for standalone mode.
 	 */
-	public function __construct( Friends $friends ) {
+	public function __construct( $friends = null ) {
 		$this->friends = $friends;
 		$this->register_hooks();
+	}
+
+	/**
+	 * Get the author name for a post, with Friends fallback.
+	 *
+	 * @param \WP_Post $post The post.
+	 * @return string The author display name.
+	 */
+	public function get_post_author_name( \WP_Post $post ) {
+		if ( $this->friends_is_available() && class_exists( '\Friends\User' ) ) {
+			$author = \Friends\User::get_post_author( $post );
+			return $author->display_name;
+		}
+		return get_the_author_meta( 'display_name', $post->post_author );
 	}
 
 	/**
 	 * Register the WordPress hooks
 	 */
 	private function register_hooks() {
-		add_filter( 'notify_new_friend_post', array( $this, 'post_notification' ), 10 );
-		add_action( 'friends_edit_friend_notifications_table_end', array( $this, 'edit_friend_notifications' ), 10 );
-		add_action( 'users_edit_post_collection_table_end', array( $this, 'users_edit_post_collection' ), 10 );
-		add_action( 'friends_edit_friend_notifications_after_form_submit', array( $this, 'edit_friend_notifications_submit' ), 10 );
-		add_action( 'friends_notification_manager_header', array( $this, 'notification_manager_header' ) );
-		add_action( 'friends_notification_manager_row', array( $this, 'notification_manager_row' ) );
-		add_action( 'friends_notification_manager_after_form_submit', array( $this, 'notification_manager_after_form_submit' ) );
-		add_action( 'friends_entry_dropdown_menu', array( $this, 'entry_dropdown_menu' ) );
-		add_action( 'friends_template_paths', array( $this, 'friends_template_paths' ) );
+		// Core hooks that work in standalone mode.
 		add_action( 'admin_menu', array( $this, 'admin_menu' ), 50 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ), 40 );
-		add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
-		add_action( 'wp_footer', array( $this, 'print_dialog' ) );
 		add_action( 'wp_ajax_send-post-to-e-reader', array( $this, 'ajax_send' ) );
 		add_action( 'wp_ajax_unmark-e-reader-send', array( $this, 'ajax_unmark' ) );
-		add_action( 'friends_author_header', array( $this, 'friends_author_header' ), 10, 2 );
-		add_filter( 'friends_friend_posts_query_viewable', array( $this, 'enable_download_via_url' ) );
 		add_filter( 'template_include', array( $this, 'download_via_url' ) );
 		add_action( 'admin_init', array( $this, 'admin_init' ) );
+
+		// Friends-specific hooks - only register when Friends is available.
+		if ( $this->friends_is_available() ) {
+			add_filter( 'notify_new_friend_post', array( $this, 'post_notification' ), 10 );
+			add_action( 'friends_edit_friend_notifications_table_end', array( $this, 'edit_friend_notifications' ), 10 );
+			add_action( 'users_edit_post_collection_table_end', array( $this, 'users_edit_post_collection' ), 10 );
+			add_action( 'friends_edit_friend_notifications_after_form_submit', array( $this, 'edit_friend_notifications_submit' ), 10 );
+			add_action( 'friends_notification_manager_header', array( $this, 'notification_manager_header' ) );
+			add_action( 'friends_notification_manager_row', array( $this, 'notification_manager_row' ) );
+			add_action( 'friends_notification_manager_after_form_submit', array( $this, 'notification_manager_after_form_submit' ) );
+			add_action( 'friends_entry_dropdown_menu', array( $this, 'entry_dropdown_menu' ) );
+			add_action( 'friends_template_paths', array( $this, 'friends_template_paths' ) );
+			add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
+			add_action( 'wp_footer', array( $this, 'print_dialog' ) );
+			add_action( 'friends_author_header', array( $this, 'friends_author_header' ), 10, 2 );
+			add_filter( 'friends_friend_posts_query_viewable', array( $this, 'enable_download_via_url' ) );
+		}
 	}
 	public function admin_init() {
 		foreach ( get_post_types( array( 'show_ui' => true ) ) as $_post_type ) {
@@ -153,10 +245,7 @@ class Send_To_E_Reader {
 	}
 
 	public function wp_enqueue_scripts() {
-		if ( ! class_exists( 'Friends\Friends' ) ) {
-			return;
-		}
-		if ( is_user_logged_in() && Friends::on_frontend() ) {
+		if ( is_user_logged_in() && \Friends\Friends::on_frontend() ) {
 			$handle = 'friends-send-to-e-reader';
 			$file = 'friends-send-to-e-reader.js';
 			$version = FRIENDS_SEND_TO_E_READER_VERSION;
@@ -174,16 +263,12 @@ class Send_To_E_Reader {
 	}
 
 	public function print_dialog() {
-		if ( ! class_exists( 'Friends\Friends' ) ) {
-			return;
-		}
-		if ( is_user_logged_in() && Friends::on_frontend() ) {
-			global $wp_query;
+		if ( is_user_logged_in() && \Friends\Friends::on_frontend() ) {
 			$friend_name = __( 'Friend Post', 'friends' );
-			if ( $this->friends->frontend->author ) {
+			if ( $this->friends && $this->friends->frontend->author ) {
 				$friend_name = $this->friends->frontend->author->display_name;
 			}
-			Friends::template_loader()->get_template_part(
+			$this->get_template_loader()->get_template_part(
 				'frontend/ereader/dialog',
 				null,
 				array(
@@ -196,13 +281,13 @@ class Send_To_E_Reader {
 	}
 
 	public function admin_enqueue_scripts() {
-		if ( ! class_exists( 'Friends\Friends' ) ) {
+		if ( ! $this->friends_is_available() ) {
 			return;
 		}
 		$handle = 'friends-send-to-e-reader';
 		$file = 'friends-send-to-e-reader.js';
 		$version = FRIENDS_SEND_TO_E_READER_VERSION;
-			wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends-admin' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ) );
+		wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends-admin' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ) );
 	}
 
 	public function admin_menu() {
@@ -226,14 +311,21 @@ class Send_To_E_Reader {
 				array( $this, 'settings' )
 			);
 		} else {
-			add_menu_page( 'friends', __( 'Friends', 'friends' ), 'edit_private_posts', 'friends-send-to-e-reader', null, 'dashicons-groups', 3 );
 			add_submenu_page(
-				'friends-send-to-e-reader',
-				__( 'About', 'friends' ),
-				__( 'About', 'friends' ),
+				'tools.php',
+				__( 'E-Readers', 'friends' ),
+				__( 'E-Readers', 'friends' ),
 				'edit_private_posts',
 				'friends-send-to-e-reader',
 				array( $this, 'configure_ereaders_with_friends_about' )
+			);
+			add_submenu_page(
+				'options-general.php',
+				__( 'Send to E-Reader', 'friends' ),
+				__( 'Send to E-Reader', 'friends' ),
+				'edit_private_posts',
+				'friends-send-to-e-reader-settings',
+				array( $this, 'settings' )
 			);
 		}
 	}
@@ -457,7 +549,7 @@ class Send_To_E_Reader {
 	 * @param      string $active  The active page.
 	 */
 	private function settings_header( $active ) {
-		Friends::template_loader()->get_template_part(
+		$this->get_template_loader()->get_template_part(
 			'admin/settings-header',
 			null,
 			array(
@@ -613,7 +705,12 @@ class Send_To_E_Reader {
 
 		$this->settings_header( 'friends-send-to-e-reader-settings' );
 
-		Friends::template_loader()->get_template_part(
+		$all_friends = array();
+		if ( $this->friends_is_available() && class_exists( '\Friends\User_Query' ) ) {
+			$all_friends = \Friends\User_Query::all_associated_users();
+		}
+
+		$this->get_template_loader()->get_template_part(
 			'admin/ereader-settings',
 			null,
 			array(
@@ -621,14 +718,14 @@ class Send_To_E_Reader {
 				'reading_summary'       => $this->reading_summary_enabled(),
 				'reading_summary_title' => $this->reading_summary_title( null, false ),
 				'download_password'     => get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) ),
-				'all-friends'           => User_Query::all_associated_users(),
+				'all-friends'           => $all_friends,
 
 				// 'cron_day' => $this->cron_day(),
 				// 'cron_ereader' => $this->cron_ereader(),
 			)
 		);
 
-		Friends::template_loader()->get_template_part( 'admin/settings-footer' );
+		$this->get_template_loader()->get_template_part( 'admin/settings-footer' );
 	}
 
 	/**
@@ -639,7 +736,7 @@ class Send_To_E_Reader {
 	public function configure_ereaders( $display_about_friends = false ) {
 		$ereaders = $this->get_ereaders();
 
-		$friends = Friends::get_instance();
+		$friends = $this->friends_is_available() ? \Friends\Friends::get_instance() : null;
 		$nonce_value = 'friends-send-to-e-reader';
 		if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( $_POST['_wpnonce'], $nonce_value ) ) {
 			$delete_ereaders = $ereaders;
@@ -649,7 +746,7 @@ class Send_To_E_Reader {
 				}
 
 				$class = wp_unslash( $ereader_data['class'] );
-				if ( ! $class || ! class_exists( $class ) || ! is_subclass_of( $class, 'Friends\E_Reader' ) ) {
+				if ( ! $class || ! class_exists( $class ) || ! is_subclass_of( $class, 'Send_To_E_Reader\E_Reader' ) ) {
 					continue;
 				}
 
@@ -684,7 +781,7 @@ class Send_To_E_Reader {
 
 		$this->settings_header( 'friends-send-to-e-reader' );
 
-		Friends::template_loader()->get_template_part(
+		$this->get_template_loader()->get_template_part(
 			'admin/configure-ereaders',
 			null,
 			array(
@@ -696,7 +793,7 @@ class Send_To_E_Reader {
 			)
 		);
 
-		Friends::template_loader()->get_template_part( 'admin/settings-footer' );
+		$this->get_template_loader()->get_template_part( 'admin/settings-footer' );
 	}
 
 	/**
@@ -709,10 +806,10 @@ class Send_To_E_Reader {
 	/**
 	 * Display an input field to enter the e-reader e-mail address.
 	 *
-	 * @param      User $friend  The friend.
+	 * @param      \Friends\User $friend  The friend.
 	 */
-	function users_edit_post_collection( User $friend ) {
-		Friends::template_loader()->get_template_part(
+	function users_edit_post_collection( \Friends\User $friend ) {
+		$this->get_template_loader()->get_template_part(
 			'admin/automatic-sending',
 			null,
 			array(
@@ -724,10 +821,10 @@ class Send_To_E_Reader {
 	/**
 	 * Display an input field to enter the e-reader e-mail address.
 	 *
-	 * @param      User $friend  The friend.
+	 * @param      \Friends\User $friend  The friend.
 	 */
-	function edit_friend_notifications( User $friend ) {
-		Friends::template_loader()->get_template_part(
+	function edit_friend_notifications( \Friends\User $friend ) {
+		$this->get_template_loader()->get_template_part(
 			'admin/edit-notifications-ereader',
 			null,
 			array(
@@ -735,7 +832,7 @@ class Send_To_E_Reader {
 				'selected' => get_user_option( 'friends_send_to_e_reader', $friend->ID ),
 			)
 		);
-		Friends::template_loader()->get_template_part(
+		$this->get_template_loader()->get_template_part(
 			'admin/automatic-sending',
 			null,
 			array(
@@ -747,9 +844,9 @@ class Send_To_E_Reader {
 	/**
 	 * Save the e-reader e-mail address to a friend.
 	 *
-	 * @param      User $friend  The friend.
+	 * @param      \Friends\User $friend  The friend.
 	 */
-	function edit_friend_notifications_submit( User $friend ) {
+	function edit_friend_notifications_submit( \Friends\User $friend ) {
 		$ereaders = get_option( self::EREADERS_OPTION, array() );
 		if ( isset( $_POST['send-to-e-reader'] ) && isset( $ereaders[ $_POST['send-to-e-reader'] ] ) ) {
 			update_user_option( $friend->ID, 'friends_send_to_e_reader', $_POST['send-to-e-reader'] );
@@ -775,8 +872,8 @@ class Send_To_E_Reader {
 		}
 	}
 
-	public function friends_author_header( User $friend_user, $args ) {
-		Friends::template_loader()->get_template_part(
+	public function friends_author_header( \Friends\User $friend_user, $args ) {
+		$this->get_template_loader()->get_template_part(
 			'frontend/ereader/author-header',
 			null,
 			array_merge(
@@ -851,7 +948,7 @@ class Send_To_E_Reader {
 				exit;
 			}
 
-			Friends::template_loader()->get_template_part(
+			$this->get_template_loader()->get_template_part(
 				'plain-list',
 				null,
 				array(
@@ -915,14 +1012,13 @@ class Send_To_E_Reader {
 		$title = date_i18n( __( 'F j, Y' ) ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 
 		$author = __( 'Friend Post', 'friends' );
-		if ( $this->friends->frontend->author ) {
+		if ( $this->friends && $this->friends->frontend->author ) {
 			$author = $this->friends->frontend->author->display_name;
 		}
 
 		if ( 1 === count( $posts ) ) {
 			$title = $posts[0]->post_title;
-			$author = User::get_post_author( $posts[0] );
-			$author = $author->display_name;
+			$author = $this->get_post_author_name( $posts[0] );
 		}
 
 		$result = $ereader->send_posts(
