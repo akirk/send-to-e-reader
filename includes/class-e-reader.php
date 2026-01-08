@@ -43,7 +43,7 @@ abstract class E_Reader {
 				private $paths = array();
 
 				public function __construct() {
-					$this->paths[] = FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'templates/';
+					$this->paths[] = SEND_TO_E_READER_PLUGIN_DIR . 'templates/';
 				}
 
 				public function get_template_part( $slug, $name = null, $args = array(), $echo = true ) {
@@ -212,7 +212,7 @@ abstract class E_Reader {
 		$filename = sanitize_title( substr( $this->ebook_author, 0, 40 ) . ' - ' . substr( $this->ebook_title, 0, 100 ) );
 		$url = home_url( '?' . implode( '-', array_map( 'intval', array_column( $posts, 'ID' ) ) ) );
 		$book = new \PHPePub\Core\EPub();
-		$book->setGenerator( 'Friends Send to E-Reader (Version ' . FRIENDS_SEND_TO_E_READER_VERSION . ')' );
+		$book->setGenerator( 'Send to E-Reader (Version ' . SEND_TO_E_READER_VERSION . ')' );
 
 		$book->setTitle( htmlspecialchars( $this->ebook_title ) );
 		$book->setIdentifier( $url, \PHPePub\Core\EPub::IDENTIFIER_URI );
