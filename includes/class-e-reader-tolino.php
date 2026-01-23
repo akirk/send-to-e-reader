@@ -4,17 +4,17 @@
  *
  * This contains the class for a Tolino E-Reader
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
-namespace Friends;
+namespace Send_To_E_Reader;
 
 /**
  * This is the class for the sending posts to a Tolino E-Reader for the Friends Plugin.
  *
  * @since 0.3
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  * @author Alex Kirk
  */
 class E_Reader_Tolino extends E_Reader {

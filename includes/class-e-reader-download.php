@@ -4,17 +4,17 @@
  *
  * This contains the class for a generic E-Reader that can receive ePub via e-mail.
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
-namespace Friends;
+namespace Send_To_E_Reader;
 
 /**
  * This is the class for the sending posts to a generic E-Reader for the Friends Plugin.
  *
  * @since 0.3
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  * @author Alex Kirk
  */
 class E_Reader_Download extends E_Reader {

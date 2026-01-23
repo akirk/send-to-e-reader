@@ -2,7 +2,7 @@
 /**
  * EPub header
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 echo '<', '?xml version="1.0" encoding="utf-8"?', '>', PHP_EOL;

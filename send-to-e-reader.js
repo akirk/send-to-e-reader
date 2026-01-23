@@ -11,7 +11,7 @@ jQuery( function( $ ) {
 
 		var data = {
 			ereader: $this.data( 'ereader' ),
-			_ajax_nonce: friends_send_to_ereader.nonce
+			_ajax_nonce: send_to_ereader.nonce
 		};
 
 		var show_dialog = false;
@@ -111,7 +111,7 @@ jQuery( function( $ ) {
 
 		wp.ajax.send( 'unmark-e-reader-send', {
 			data: {
-				_ajax_nonce: friends_send_to_ereader.nonce,
+				_ajax_nonce: send_to_ereader.nonce,
 				id: $this.data( 'id' )
 			},
 			beforeSend: function() {
@@ -119,7 +119,7 @@ jQuery( function( $ ) {
 			},
 			success: function( e ) {
 				search_indicator.removeClass( 'form-icon loading' ).addClass( 'dashicons dashicons-saved' );
-				$this.closest( 'li' ).prevAll().filter( '.divider.ereader' ).attr( 'data-content', friends_send_to_ereader.ereader );
+				$this.closest( 'li' ).prevAll().filter( '.divider.ereader' ).attr( 'data-content', send_to_ereader.ereader );
 			},
 			error: function( e ) {
 				search_indicator.removeClass( 'form-icon loading' ).addClass( 'dashicons dashicons-warning' ).prop( 'title', e.responseText.replace( /<\/?[^>]+(>|$)/g, '' ) );

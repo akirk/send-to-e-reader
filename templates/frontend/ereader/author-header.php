@@ -2,7 +2,7 @@
 /**
  * This template contains the message part for the author header on /friends/.
  *
- * @package Friends_Send_To_E_Reader
+ * @package Send_To_E_Reader
  */
 
 if ( count( $args['unsent_posts'] ) ) {

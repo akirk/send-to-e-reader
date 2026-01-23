@@ -1,55 +1,12 @@
 <?php
 /**
- * Plugin name: Friends Send to E-Reader
- * Plugin author: Alex Kirk
- * Plugin URI: https://github.com/akirk/friends-send-to-e-reader
- * Version: 0.8.4
- * Requires Plugins: friends
+ * Plugin name: Send to E-Reader (Legacy Loader)
+ * Description: This file exists for backwards compatibility. The plugin has been renamed to Send to E-Reader.
  *
- * Description: Send friend posts to your e-reader.
- *
- * License: GPL2
- * Text Domain: friends
- *
- * @package Friends_Send_To_E_Reader
- */
-
-/**
- * This file contains the main plugin functionality.
+ * @package Send_To_E_Reader
+ * @deprecated Use send-to-e-reader.php instead.
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'FRIENDS_SEND_TO_E_READER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'FRIENDS_SEND_TO_E_READER_VERSION', '0.8.4' );
 
-require 'libs/autoload.php';
-require_once __DIR__ . '/includes/class-send-to-e-reader.php';
-require_once __DIR__ . '/includes/class-e-reader.php';
-
-add_filter( 'friends_send_to_e_reader', '__return_true' );
-add_action(
-	'friends_loaded',
-	function ( $friends ) {
-		$send_to_e_reader = new Friends\Send_To_E_Reader( $friends );
-
-		require_once __DIR__ . '/includes/class-e-reader-generic-email.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Generic_Email' );
-
-		require_once __DIR__ . '/includes/class-e-reader-kindle.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Kindle' );
-
-		require_once __DIR__ . '/includes/class-e-reader-pocketbook.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Pocketbook' );
-
-		/*
-		Not ready.
-		require_once __DIR__ . '/includes/class-e-reader-tolino.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Tolino' );
-		*/
-
-		require_once __DIR__ . '/includes/class-e-reader-download.php';
-		$send_to_e_reader->register_ereader( 'Friends\E_Reader_Download' );
-	}
-);
-
-register_activation_hook( __FILE__, array( 'Friends\Send_To_E_Reader', 'activate_plugin' ) );
+require_once __DIR__ . '/send-to-e-reader.php';
