@@ -3,19 +3,27 @@
 Send new articles directly to your e-reader via e-mail or download the ePub.
 
 **Contributors:** akirk
-**Requires at least:** 5.0
-**Tested up to:** 6.3
-**Requires PHP:** 5.2.4
+**Requires at least:** 6.0
+**Tested up to:** 6.9
+**Requires PHP:** 7.4
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)
-**Stable tag:** trunk
+**Stable tag:** 1.0.0
 
 ## Description
 
+Send posts to your e-reader as ePub files - either via e-mail or direct download.
+
 See the post [Subscribing to RSS Feeds on your E-Reader using your own WordPress blog](https://wpfriends.at/2021/09/20/subscribing-to-rss-feeds-on-your-e-reader/) for more details on how it works.
 
-This plugin works standalone or integrates with the [Friends plugin](https://github.com/akirk/friends/).
+This plugin works standalone or optionally integrates with the [Friends plugin](https://github.com/akirk/friends/) for sending RSS feed content to your e-reader.
 
 ## Changelog
+
+### 1.0.0
+- Plugin now works fully standalone without requiring the Friends plugin
+- Renamed plugin from "Friends Send to E-Reader" to "Send to E-Reader"
+- Added standalone settings pages and admin UI
+- Added test suite
 
 ### 0.8.4
 - Allow creating books via bulk edit ([#13])
