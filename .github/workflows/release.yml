@@ -1,0 +1,48 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create release directory
+        run: |
+          mkdir -p release
+          rsync -av --exclude='.git' \
+                   --exclude='.github' \
+                   --exclude='.claude' \
+                   --exclude='node_modules' \
+                   --exclude='tests' \
+                   --exclude='bin' \
+                   --exclude='.gitignore' \
+                   --exclude='.gitattributes' \
+                   --exclude='.phpunit.result.cache' \
+                   --exclude='phpunit.xml' \
+                   --exclude='phpcs.xml' \
+                   --exclude='composer.lock' \
+                   --exclude='.vscode' \
+                   --exclude='sftp-config.json' \
+                   --exclude='.DS_Store' \
+                   --exclude='release' \
+                   ./ release/send-to-e-reader/
+
+      - name: Create ZIP archive
+        run: |
+          cd release
+          zip -r "send-to-e-reader.zip" send-to-e-reader/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: release/send-to-e-reader.zip
+          generate_release_notes: true
