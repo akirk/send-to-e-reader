@@ -12,7 +12,7 @@ if ( count( $args['unsent_posts'] ) ) {
 		echo esc_html(
 			sprintf(
 			// translators: %s is an E-Reader name.
-				_n( 'Send %1$d new post to %2$s', 'Send %1$d new posts to %2$s', count( $args['unsent_posts'] ), 'friends' ),
+				_n( 'Send %1$d new post to %2$s', 'Send %1$d new posts to %2$s', count( $args['unsent_posts'] ), 'send-to-e-reader' ),
 				count( $args['unsent_posts'] ),
 				$ereader->get_name()
 			)

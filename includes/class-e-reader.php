@@ -93,7 +93,7 @@ abstract class E_Reader {
 		if ( class_exists( '\Friends\User' ) ) {
 			return \Friends\User::get_post_author( $post );
 		}
-		return get_userdata( $post->post_author ) ?: (object) array( 'display_name' => __( 'Unknown', 'friends' ) );
+		return get_userdata( $post->post_author ) ?: (object) array( 'display_name' => __( 'Unknown', 'send-to-e-reader' ) );
 	}
 
 	/**
@@ -200,7 +200,7 @@ abstract class E_Reader {
 
 		if ( count( $posts ) > 1 && ! $title ) {
 			// translators: %s is a post title. This is a title to be used when multiple posts are compiled to an ePub.
-			$this->ebook_title = sprintf( __( '%s & more', 'friends' ), $this->ebook_title );
+			$this->ebook_title = sprintf( __( '%s & more', 'send-to-e-reader' ), $this->ebook_title );
 		}
 
 		if ( ! $this->ebook_author ) {
@@ -234,7 +234,7 @@ abstract class E_Reader {
 		}
 
 		if ( count( $posts ) > 1 ) {
-			$book->buildTOC( null, 'toc', __( 'Table of Contents', 'friends' ), true, true );
+			$book->buildTOC( null, 'toc', __( 'Table of Contents', 'send-to-e-reader' ), true, true );
 		}
 
 		$book->finalize();

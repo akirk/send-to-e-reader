@@ -57,13 +57,13 @@ class E_Reader_Generic_Email extends E_Reader {
 		return array(
 			'id'                => 'new' . get_called_class(),
 			'email'             => '',
-			'email_placeholder' => __( 'E-Reader E-Mail address', 'friends' ),
+			'email_placeholder' => __( 'E-Reader E-Mail address', 'send-to-e-reader' ),
 		);
 	}
 
 	public static function render_template( $data = array() ) {
 		$data = array_merge( static::get_defaults(), $data );
-		?><input type="text" class="email" name="ereaders[<?php echo esc_attr( $data['id'] ); ?>][email]" value="<?php echo esc_attr( $data['email'] ); ?>" size="30" aria-label="<?php esc_attr_e( 'E-Reader E-Mail address', 'friends' ); ?>" placeholder="<?php echo esc_attr( $data['email_placeholder'] ); ?>"/>
+		?><input type="text" class="email" name="ereaders[<?php echo esc_attr( $data['id'] ); ?>][email]" value="<?php echo esc_attr( $data['email'] ); ?>" size="30" aria-label="<?php esc_attr_e( 'E-Reader E-Mail address', 'send-to-e-reader' ); ?>" placeholder="<?php echo esc_attr( $data['email_placeholder'] ); ?>"/>
 		<?php
 	}
 

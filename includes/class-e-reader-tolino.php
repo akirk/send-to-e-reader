@@ -67,11 +67,11 @@ class E_Reader_Tolino extends E_Reader {
 		if ( ! $this->refresh_token || ! $this->hardware_id ) {
 			$url = 'https://www.thalia.de/auth/oauth2/authorize?client_id=webreader&response_type=code&scope=SCOPE_BOSH&redirect_uri=' . self_admin_url() . '&x_buchde.skin_id=17&x_buchde.mandant_id=' . intval( $this->reseller_id );
 			?>
-			<a href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( 'Connect account (broken)', 'friends' ); ?></a><br/>
+			<a href="<?php echo esc_url( $url ); ?>"><?php esc_html_e( 'Connect account (broken)', 'send-to-e-reader' ); ?></a><br/>
 			<?php
 		} else {
 			// translators: %s is a the name of a Tolino vendor.
-			echo esc_html( sprintf( __( 'Connected to %s', 'friends' ), self::$resellers[ $this->reseller_id ] ) );
+			echo esc_html( sprintf( __( 'Connected to %s', 'send-to-e-reader' ), self::$resellers[ $this->reseller_id ] ) );
 		}
 
 		if ( $this->refresh_token ) {
@@ -119,7 +119,7 @@ class E_Reader_Tolino extends E_Reader {
 		);
 		?>
 		<select name="ereaders[<?php echo esc_attr( $data['id'] ); ?>][reseller_id]">
-			<option disabled selected hidden><?php esc_html_e( 'Select your Tolino seller', 'friends' ); ?></option>
+			<option disabled selected hidden><?php esc_html_e( 'Select your Tolino seller', 'send-to-e-reader' ); ?></option>
 			<?php foreach ( self::$resellers as $reseller_id => $name ) : ?>
 				<option value="<?php echo esc_html( $reseller_id ); ?>"><?php echo esc_html( $name ); ?></option>
 			<?php endforeach; ?>

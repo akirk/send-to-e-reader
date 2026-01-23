@@ -314,7 +314,7 @@ class Send_To_E_Reader {
 				array(
 					'ajaxurl' => admin_url( 'admin-ajax.php' ),
 					'nonce'   => wp_create_nonce( 'send-post-to-e-reader' ),
-					'ereader' => __( 'E-Reader', 'friends' ),
+					'ereader' => __( 'E-Reader', 'send-to-e-reader' ),
 				)
 			);
 		}
@@ -322,7 +322,7 @@ class Send_To_E_Reader {
 
 	public function print_dialog() {
 		if ( is_user_logged_in() && \Friends\Friends::on_frontend() ) {
-			$friend_name = __( 'Friend Post', 'friends' );
+			$friend_name = __( 'Friend Post', 'send-to-e-reader' );
 			if ( $this->friends && $this->friends->frontend->author ) {
 				$friend_name = $this->friends->frontend->author->display_name;
 			}
@@ -354,16 +354,16 @@ class Send_To_E_Reader {
 		if ( $friends_settings_exist ) {
 			add_submenu_page(
 				'friends',
-				__( 'E-Readers', 'friends' ),
-				__( 'E-Readers', 'friends' ),
+				__( 'E-Readers', 'send-to-e-reader' ),
+				__( 'E-Readers', 'send-to-e-reader' ),
 				'edit_private_posts',
 				'send-to-e-reader',
 				array( $this, 'configure_ereaders' )
 			);
 			add_submenu_page(
 				'friends',
-				__( 'E-Reader Settings', 'friends' ),
-				__( 'E-Reader Settings', 'friends' ),
+				__( 'E-Reader Settings', 'send-to-e-reader' ),
+				__( 'E-Reader Settings', 'send-to-e-reader' ),
 				'edit_private_posts',
 				'send-to-e-reader-settings',
 				array( $this, 'settings' )
@@ -371,16 +371,16 @@ class Send_To_E_Reader {
 		} else {
 			add_submenu_page(
 				'tools.php',
-				__( 'E-Readers', 'friends' ),
-				__( 'E-Readers', 'friends' ),
+				__( 'E-Readers', 'send-to-e-reader' ),
+				__( 'E-Readers', 'send-to-e-reader' ),
 				'edit_private_posts',
 				'send-to-e-reader',
 				array( $this, 'configure_ereaders_with_friends_about' )
 			);
 			add_submenu_page(
 				'options-general.php',
-				__( 'Send to E-Reader', 'friends' ),
-				__( 'Send to E-Reader', 'friends' ),
+				__( 'Send to E-Reader', 'send-to-e-reader' ),
+				__( 'Send to E-Reader', 'send-to-e-reader' ),
 				'edit_private_posts',
 				'send-to-e-reader-settings',
 				array( $this, 'settings' )
@@ -394,7 +394,7 @@ class Send_To_E_Reader {
 			return;
 		}
 		?>
-			<th class="column-send-to-e-reader"><?php esc_html_e( 'Send to E-Reader', 'friends' ); ?></th>
+			<th class="column-send-to-e-reader"><?php esc_html_e( 'Send to E-Reader', 'send-to-e-reader' ); ?></th>
 		<?php
 	}
 
@@ -479,13 +479,13 @@ class Send_To_E_Reader {
 	}
 
 	public function entry_dropdown_menu() {
-		$divider = '<li class="divider ereader" data-content="' . esc_attr__( 'E-Reader', 'friends' ) . '"></li>';
+		$divider = '<li class="divider ereader" data-content="' . esc_attr__( 'E-Reader', 'send-to-e-reader' ) . '"></li>';
 		$already_sent = get_post_meta( get_the_ID(), self::POST_META, true );
 		if ( $already_sent ) {
 			$divider = '<li class="divider ereader" data-content="' . esc_attr(
 				sprintf(
 					// translators: %s is a date.
-					__( 'E-Reader: Sent on %s', 'friends' ),
+					__( 'E-Reader: Sent on %s', 'send-to-e-reader' ),
 					date_i18n( __( 'M j' ), $already_sent ) // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 				)
 			) . '"></li>';
@@ -511,7 +511,7 @@ class Send_To_E_Reader {
 					echo esc_html(
 						sprintf(
 							// translators: %s is an E-Reader name.
-							_x( 'Send to %s', 'e-reader', 'friends' ),
+							_x( 'Send to %s', 'e-reader', 'send-to-e-reader' ),
 							$ereader->get_name()
 						)
 					);
@@ -523,13 +523,13 @@ class Send_To_E_Reader {
 		?>
 		<li class="menu-item">
 			<label class="form-switch">
-				<input type="checkbox" name="multi-entry"><i class="form-icon off"></i> <?php esc_html_e( 'Include all posts above', 'friends' ); ?>
+				<input type="checkbox" name="multi-entry"><i class="form-icon off"></i> <?php esc_html_e( 'Include all posts above', 'send-to-e-reader' ); ?>
 			</label>
 		</li>
 		<?php
 		if ( $already_sent ) {
 			?>
-			<li class="menu-item"><a href="#" data-id="<?php echo esc_attr( get_the_ID() ); ?>" class="friends-unmark-e-reader-send has-icon-right"><?php esc_html_e( 'Mark as new', 'friends' ); ?>
+			<li class="menu-item"><a href="#" data-id="<?php echo esc_attr( get_the_ID() ); ?>" class="friends-unmark-e-reader-send has-icon-right"><?php esc_html_e( 'Mark as new', 'send-to-e-reader' ); ?>
 				<i class="form-icon"></i></a></li>
 			<?php
 		}
@@ -546,7 +546,7 @@ class Send_To_E_Reader {
 
 		$ereaders = $this->get_ereaders();
 		if ( ! isset( $ereaders[ $_POST['ereader'] ] ) ) {
-			wp_send_json_error( __( 'E-Reader not configured', 'friends' ) );
+			wp_send_json_error( __( 'E-Reader not configured', 'send-to-e-reader' ) );
 			exit;
 		}
 		$posts = array();
@@ -566,7 +566,7 @@ class Send_To_E_Reader {
 		}
 
 		if ( empty( $posts ) ) {
-			wp_send_json_error( __( 'No posts could be found.', 'friends' ) );
+			wp_send_json_error( __( 'No posts could be found.', 'send-to-e-reader' ) );
 			exit;
 		}
 
@@ -612,9 +612,9 @@ class Send_To_E_Reader {
 			null,
 			array(
 				'active' => $active,
-				'title'  => __( 'Send to E-Reader', 'friends' ),
+				'title'  => __( 'Send to E-Reader', 'send-to-e-reader' ),
 				'menu'   => array(
-					__( 'E-Readers', 'friends' ) => 'send-to-e-reader',
+					__( 'E-Readers', 'send-to-e-reader' ) => 'send-to-e-reader',
 					__( 'Settings' )             => 'send-to-e-reader-settings', // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 				),
 			)
@@ -719,7 +719,7 @@ class Send_To_E_Reader {
 		if ( empty( $summary['title'] ) ) {
 			$summary['title'] = sprintf(
 				// translators: %1$s is a month, %2$s is a year.
-				__( 'Reading Notes, %1$s %2$s', 'friends' ),
+				__( 'Reading Notes, %1$s %2$s', 'send-to-e-reader' ),
 				'$month',
 				'$year'
 			);
@@ -1069,7 +1069,7 @@ class Send_To_E_Reader {
 
 		$title = date_i18n( __( 'F j, Y' ) ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 
-		$author = __( 'Friend Post', 'friends' );
+		$author = __( 'Friend Post', 'send-to-e-reader' );
 		if ( $this->friends && $this->friends->frontend->author ) {
 			$author = $this->friends->frontend->author->display_name;
 		}
@@ -1102,7 +1102,7 @@ class Send_To_E_Reader {
 	}
 
 	public function bulk_actions( $actions ) {
-		$actions['send-to-e-reader'] = __( 'Send to E-Reader', 'friends' );
+		$actions['send-to-e-reader'] = __( 'Send to E-Reader', 'send-to-e-reader' );
 		return $actions;
 	}
 
@@ -1113,6 +1113,10 @@ class Send_To_E_Reader {
 
 		$ereaders = $this->get_active_ereaders();
 		$ereader = array_shift( $ereaders );
+
+		if ( ! $ereader ) {
+			return add_query_arg( 'send-to-e-reader', 'no-ereader', $redirect_to );
+		}
 
 		$posts = array_map( 'get_post', $post_ids );
 		$result = $ereader->send_posts( $posts, false, false );
@@ -1146,7 +1150,7 @@ class Send_To_E_Reader {
 				),
 				'edit.php'
 			),
-			__( 'Send to E-Reader', 'friends' )
+			__( 'Send to E-Reader', 'send-to-e-reader' )
 		);
 		return $actions;
 	}
@@ -1156,7 +1160,19 @@ class Send_To_E_Reader {
 			if ( 'success' === $_GET['send-to-e-reader'] ) {
 				?>
 				<div class="notice notice-success is-dismissible">
-					<p><?php esc_html_e( 'Posts sent to E-Reader.', 'friends' ); ?></p>
+					<p><?php esc_html_e( 'Posts sent to E-Reader.', 'send-to-e-reader' ); ?></p>
+				</div>
+				<?php
+			} elseif ( 'no-ereader' === $_GET['send-to-e-reader'] ) {
+				?>
+				<div class="notice notice-error is-dismissible">
+					<p><?php
+						printf(
+							/* translators: %s is a link to the settings page */
+							esc_html__( 'No active E-Reader configured. Please configure one in the %s.', 'send-to-e-reader' ),
+							'<a href="' . esc_url( admin_url( 'options-general.php?page=send-to-e-reader-settings' ) ) . '">' . esc_html__( 'settings', 'send-to-e-reader' ) . '</a>'
+						);
+					?></p>
 				</div>
 				<?php
 			}
@@ -1168,7 +1184,7 @@ class Send_To_E_Reader {
 		if ( empty( $ereaders ) ) {
 			$ereaders = array();
 			require_once SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-download.php';
-			$ereader = new E_Reader_Download( __( 'Download ePub', 'friends' ) );
+			$ereader = new E_Reader_Download( __( 'Download ePub', 'send-to-e-reader' ) );
 			$ereader->active = true;
 			$id = $ereader->get_id();
 			if ( $id ) {
