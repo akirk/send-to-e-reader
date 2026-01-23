@@ -3,7 +3,7 @@
  * Plugin name: Send to E-Reader
  * Plugin author: Alex Kirk
  * Plugin URI: https://github.com/akirk/send-to-e-reader
- * Version: 0.8.4
+ * Version: 1.0.0
  *
  * Description: Send posts to your e-reader. Works standalone or integrates with the Friends plugin.
  *
@@ -19,7 +19,7 @@
 
 defined( 'ABSPATH' ) || exit;
 define( 'SEND_TO_E_READER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'SEND_TO_E_READER_VERSION', '0.8.4' );
+define( 'SEND_TO_E_READER_VERSION', '1.0.0' );
 
 require 'libs/autoload.php';
 require_once __DIR__ . '/includes/class-send-to-e-reader.php';
