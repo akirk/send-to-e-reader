@@ -20,16 +20,6 @@
 			<input class="form-input" id="ebook-author" type="text" placeholder="<?php esc_attr_e( 'Autogenerate', 'send-to-e-reader' ); ?>">
 		</div>
 
-		<div class="form-group">
-			<label class="form-checkbox form-inline" style="cursor: pointer;">
-				<input type="checkbox" <?php checked( $args['reading_summary_enabled'] ); ?> id="reading-summary-enabled">
-				<i class="form-icon"></i> <?php esc_html_e( 'Create or extend a reading summary draft:', 'send-to-e-reader' ); ?>
-			</label>
-			<label class="form-inline col-6">
-				<input type="text" class="form-input" id="reading-summary-title" value="<?php echo esc_attr( $args['reading_summary_title'] ); ?>">
-			</label>
-
-		</div>
 		<button class="btn btn-primary" name="ok" autofocus><?php esc_html_e( 'Submit', 'send-to-e-reader' ); ?></button>
 		<button class="btn close" name="close"><?php esc_html_e( 'Cancel', 'send-to-e-reader' ); ?></button>
 	</form>

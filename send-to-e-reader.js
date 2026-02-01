@@ -45,10 +45,6 @@ jQuery( function( $ ) {
 			$( '#ebook-author' ).prop( 'placeholder', $.trim( $.trim( $( '#post-' + data.ids[0] + ' div.author' ).text().replace( /\s+/, ' ' ) ) + ' et al' ) );
 		}
 
-		if ( $this.closest( 'ul' ).find( 'li.menu-item input[name=reading-summary]' ).is( ':checked' ) ) {
-			data.reading_summary = 1;
-		}
-
 		var send = function( data ) {
 			wp.ajax.send( 'send-post-to-e-reader', {
 				data: data,
@@ -82,13 +78,6 @@ jQuery( function( $ ) {
 				}
 				if ( $( '#ebook-author' ).val() ) {
 					data.author = $( '#ebook-author' ).val();
-				}
-				if ( $( '#reading-summary-enabled' ).is( ':checked' ) ) {
-					data.reading_summary = 1;
-					data.reading_summary_title = $( '#reading-summary-title' ).val();
-				} else {
-					data.reading_summary = 0;
-					delete data.reading_summary;
 				}
 
 				send( data );
