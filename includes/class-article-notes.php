@@ -48,6 +48,7 @@ class Article_Notes {
 		add_action( 'init', array( $this, 'register_post_type' ) );
 		add_action( 'wp_ajax_ereader_save_note', array( $this, 'ajax_save_note' ) );
 		add_action( 'wp_ajax_ereader_get_notes', array( $this, 'ajax_get_notes' ) );
+		add_action( 'wp_ajax_ereader_load_more_pending', array( $this, 'ajax_load_more_pending' ) );
 		add_action( 'wp_ajax_ereader_create_post_from_notes', array( $this, 'ajax_create_post_from_notes' ) );
 		add_action( 'wp_ajax_ereader_dismiss_old_articles', array( $this, 'ajax_dismiss_old_articles' ) );
 		add_action( 'before_delete_post', array( $this, 'maybe_delete_note' ) );
@@ -98,13 +99,18 @@ class Article_Notes {
 	 */
 	public function render_dashboard_widget() {
 		$this->enqueue_widget_assets();
-		$pending_count = $this->get_pending_articles_count();
+		$limit = 10;
+		$pending_articles = $this->get_pending_articles( $limit + 1 );
+		$has_more_pending = count( $pending_articles ) > $limit;
+		if ( $has_more_pending ) {
+			$pending_articles = array_slice( $pending_articles, 0, $limit );
+		}
 		$this->plugin->get_template_loader()->get_template_part(
 			'admin/article-notes-widget',
 			null,
 			array(
-				'pending_articles'  => $this->get_pending_articles(),
-				'pending_count'     => $pending_count,
+				'pending_articles'  => $pending_articles,
+				'has_more_pending'  => $has_more_pending,
 				'reviewed_articles' => $this->get_reviewed_articles( 5 ),
 				'nonce'             => wp_create_nonce( 'ereader-article-notes' ),
 			)
@@ -136,12 +142,14 @@ class Article_Notes {
 			'ereader-article-notes',
 			'ereaderArticleNotes',
 			array(
-				'ajaxurl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'ereader-article-notes' ),
-				'i18n'    => array(
-					'saving'       => __( 'Saving...', 'send-to-e-reader' ),
-					'saved'        => __( 'Saved', 'send-to-e-reader' ),
-					'error'        => __( 'Error saving', 'send-to-e-reader' ),
+				'ajaxurl'  => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'ereader-article-notes' ),
+				'statuses' => self::get_statuses(),
+				'i18n'     => array(
+					'saving'        => __( 'Saving...', 'send-to-e-reader' ),
+					'saved'         => __( 'Saved', 'send-to-e-reader' ),
+					'error'         => __( 'Error saving', 'send-to-e-reader' ),
+					'loading'       => __( 'Loading...', 'send-to-e-reader' ),
 					'confirmCreate' => __( 'Create a post from the selected reviews?', 'send-to-e-reader' ),
 				),
 			)
@@ -181,29 +189,22 @@ class Article_Notes {
 	/**
 	 * Get articles that have been downloaded but not yet reviewed.
 	 *
-	 * @param int $limit Maximum number of articles to return.
+	 * @param int $limit  Maximum number of articles to return.
+	 * @param int $offset Number of articles to skip.
 	 * @return array Array of post objects with note data.
 	 */
-	public function get_pending_articles( $limit = 20 ) {
+	public function get_pending_articles( $limit = 20, $offset = 0 ) {
 		$args = array(
 			'post_type'      => $this->get_article_post_types(),
 			'posts_per_page' => $limit,
+			'offset'         => $offset,
 			'post_status'    => 'any',
 			'meta_query'     => array(
 				'relation' => 'AND',
-				// Must have been sent (either old or new meta key).
 				array(
-					'relation' => 'OR',
-					array(
-						'key'     => Send_To_E_Reader::POST_META,
-						'compare' => 'EXISTS',
-					),
-					array(
-						'key'     => Send_To_E_Reader::OLD_POST_META,
-						'compare' => 'EXISTS',
-					),
+					'key'     => Send_To_E_Reader::POST_META,
+					'compare' => 'EXISTS',
 				),
-				// Must not have a note yet.
 				array(
 					'key'     => self::NOTE_ID_META,
 					'compare' => 'NOT EXISTS',
@@ -217,44 +218,6 @@ class Article_Notes {
 		$posts = get_posts( $args );
 
 		return array_map( array( $this, 'prepare_article_data' ), $posts );
-	}
-
-	/**
-	 * Get the count of pending articles (for migration notice).
-	 *
-	 * @return int Count of pending articles.
-	 */
-	public function get_pending_articles_count() {
-		$args = array(
-			'post_type'      => $this->get_article_post_types(),
-			'posts_per_page' => -1,
-			'post_status'    => 'any',
-			'fields'         => 'ids',
-			'meta_query'     => array(
-				'relation' => 'AND',
-				// Must have been sent (either old or new meta key).
-				array(
-					'relation' => 'OR',
-					array(
-						'key'     => Send_To_E_Reader::POST_META,
-						'compare' => 'EXISTS',
-					),
-					array(
-						'key'     => Send_To_E_Reader::OLD_POST_META,
-						'compare' => 'EXISTS',
-					),
-				),
-				// Must not have a note yet.
-				array(
-					'key'     => self::NOTE_ID_META,
-					'compare' => 'NOT EXISTS',
-				),
-			),
-		);
-
-		$posts = get_posts( $args );
-
-		return count( $posts );
 	}
 
 	/**
@@ -480,6 +443,34 @@ class Article_Notes {
 	}
 
 	/**
+	 * AJAX handler for loading more pending articles.
+	 */
+	public function ajax_load_more_pending() {
+		check_ajax_referer( 'ereader-article-notes' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'send-to-e-reader' ) );
+		}
+
+		$offset = isset( $_POST['offset'] ) ? (int) $_POST['offset'] : 0;
+		$limit = 10;
+
+		$articles = $this->get_pending_articles( $limit + 1, $offset );
+		$has_more = count( $articles ) > $limit;
+		if ( $has_more ) {
+			$articles = array_slice( $articles, 0, $limit );
+		}
+
+		wp_send_json_success(
+			array(
+				'articles' => $articles,
+				'has_more' => $has_more,
+				'offset'   => $offset + count( $articles ),
+			)
+		);
+	}
+
+	/**
 	 * AJAX handler for creating a post from selected notes.
 	 */
 	public function ajax_create_post_from_notes() {
@@ -618,19 +609,10 @@ class Article_Notes {
 			'fields'         => 'ids',
 			'meta_query'     => array(
 				'relation' => 'AND',
-				// Must have been sent (either old or new meta key).
 				array(
-					'relation' => 'OR',
-					array(
-						'key'     => Send_To_E_Reader::POST_META,
-						'compare' => 'EXISTS',
-					),
-					array(
-						'key'     => Send_To_E_Reader::OLD_POST_META,
-						'compare' => 'EXISTS',
-					),
+					'key'     => Send_To_E_Reader::POST_META,
+					'compare' => 'EXISTS',
 				),
-				// Must not have a note yet.
 				array(
 					'key'     => self::NOTE_ID_META,
 					'compare' => 'NOT EXISTS',

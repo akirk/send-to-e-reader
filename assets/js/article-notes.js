@@ -114,10 +114,10 @@
 				$('.ereader-reviewed-list input[type="checkbox"]').prop('checked', checked);
 			});
 
-			// Dismiss old articles.
-			$(document).on('click', '.ereader-dismiss-old-btn', function(e) {
+			// Load more pending articles.
+			$(document).on('click', '.ereader-load-more-btn', function(e) {
 				e.preventDefault();
-				self.dismissOldArticles();
+				self.loadMorePending($(this));
 			});
 		},
 
@@ -161,7 +161,6 @@
 		 * @param {jQuery} $item Article item element.
 		 */
 		saveNote: function(articleId, data, $item) {
-			var self = this;
 			var $status = $item.find('.ereader-save-status');
 
 			$status.text(ereaderArticleNotes.i18n.saving).addClass('saving');
@@ -178,11 +177,6 @@
 						$status.text(ereaderArticleNotes.i18n.saved)
 							.removeClass('saving error')
 							.addClass('saved');
-
-						// If this was in pending and now has a status, it might need to move.
-						if (data.status && data.status !== 'unread') {
-							self.maybeMoveToPending($item, false);
-						}
 
 						setTimeout(function() {
 							$status.text('').removeClass('saved');
@@ -201,54 +195,106 @@
 		},
 
 		/**
-		 * Maybe move item between pending/reviewed.
+		 * Load more pending articles.
 		 *
-		 * @param {jQuery} $item Article item.
-		 * @param {boolean} toPending Move to pending?
+		 * @param {jQuery} $btn The load more button.
 		 */
-		maybeMoveToPending: function($item, toPending) {
-			// For now, just update the count. Full move would require page refresh.
-			var $pendingTab = $('.ereader-tab[data-tab="pending"]');
-			var countMatch = $pendingTab.find('.count').text().match(/\d+/);
-			if (countMatch) {
-				var count = parseInt(countMatch[0], 10);
-				if (toPending) {
-					count++;
-				} else {
-					count = Math.max(0, count - 1);
-				}
-				$pendingTab.find('.count').text('(' + count + ')');
-			}
-		},
+		loadMorePending: function($btn) {
+			var self = this;
+			var offset = $btn.data('offset');
+			var originalText = $btn.text();
 
-		/**
-		 * Dismiss all old/pending articles.
-		 */
-		dismissOldArticles: function() {
-			if (!confirm('This will mark all pending articles as "Skipped". Continue?')) {
-				return;
-			}
-
-			var $btn = $('.ereader-dismiss-old-btn');
-			$btn.prop('disabled', true).text('Dismissing...');
+			$btn.prop('disabled', true).text(ereaderArticleNotes.i18n.loading || 'Loading...');
 
 			$.post(ereaderArticleNotes.ajaxurl, {
-				action: 'ereader_dismiss_old_articles',
-				_ajax_nonce: ereaderArticleNotes.nonce
+				action: 'ereader_load_more_pending',
+				_ajax_nonce: ereaderArticleNotes.nonce,
+				offset: offset
 			})
 				.done(function(response) {
-					if (response.success) {
-						// Reload the page to show updated state.
-						window.location.reload();
+					if (response.success && response.data.articles) {
+						var $list = $('.ereader-pending-list');
+
+						// Append new articles.
+						response.data.articles.forEach(function(article) {
+							$list.append(self.renderArticleItem(article));
+						});
+
+						// Update button offset or hide if no more.
+						if (response.data.has_more) {
+							$btn.data('offset', response.data.offset);
+							$btn.prop('disabled', false).text(originalText);
+						} else {
+							$btn.closest('.ereader-load-more-section').remove();
+						}
 					} else {
-						alert(response.data || 'Error dismissing articles');
-						$btn.prop('disabled', false).text('Dismiss old articles');
+						$btn.prop('disabled', false).text(originalText);
 					}
 				})
 				.fail(function() {
-					alert('Error dismissing articles');
-					$btn.prop('disabled', false).text('Dismiss old articles');
+					$btn.prop('disabled', false).text(originalText);
 				});
+		},
+
+		/**
+		 * Render an article item HTML.
+		 *
+		 * @param {object} article Article data.
+		 * @return {string} HTML string.
+		 */
+		renderArticleItem: function(article) {
+			var statuses = ereaderArticleNotes.statuses || {
+				'unread': 'Not read yet',
+				'read': 'Read',
+				'skipped': 'Skipped'
+			};
+
+			var html = '<li class="ereader-article-item" data-article-id="' + article.id + '">';
+			html += '<div class="ereader-article-header">';
+			html += '<a href="' + article.permalink + '" class="ereader-article-title" target="_blank">' + this.escapeHtml(article.title) + '</a>';
+			html += '<span class="ereader-article-meta">' + this.escapeHtml(article.author);
+			if (article.sent_date) {
+				html += ' &bull; ' + this.escapeHtml(article.sent_date);
+			}
+			html += '</span></div>';
+
+			html += '<div class="ereader-article-controls">';
+			html += '<div class="ereader-status-buttons">';
+			for (var key in statuses) {
+				var activeClass = article.status === key ? ' active' : '';
+				html += '<button type="button" class="ereader-status-btn' + activeClass + '" data-status="' + key + '" title="' + statuses[key] + '">' + statuses[key] + '</button>';
+			}
+			html += '</div>';
+
+			html += '<div class="ereader-rating" data-rating="' + article.rating + '">';
+			for (var i = 1; i <= 5; i++) {
+				var starActive = i <= article.rating ? ' active' : '';
+				var starChar = i <= article.rating ? '&#9733;' : '&#9734;';
+				html += '<button type="button" class="ereader-star' + starActive + '" data-rating="' + i + '" title="' + i + ' stars">' + starChar + '</button>';
+			}
+			html += '</div></div>';
+
+			html += '<div class="ereader-notes-wrapper">';
+			html += '<textarea class="ereader-notes" placeholder="Add your notes..." rows="2">' + this.escapeHtml(article.notes || '') + '</textarea>';
+			html += '</div>';
+
+			html += '<div class="ereader-save-status"></div>';
+			html += '</li>';
+
+			return html;
+		},
+
+		/**
+		 * Escape HTML entities.
+		 *
+		 * @param {string} str String to escape.
+		 * @return {string} Escaped string.
+		 */
+		escapeHtml: function(str) {
+			if (!str) return '';
+			var div = document.createElement('div');
+			div.textContent = str;
+			return div.innerHTML;
 		},
 
 		/**

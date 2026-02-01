@@ -165,6 +165,17 @@ class Send_To_E_Reader {
 			update_option( self::CRON_OPTION, $old_cron );
 			delete_option( self::OLD_CRON_OPTION );
 		}
+
+		// Migrate post meta from old key to new key.
+		if ( ! get_option( 'send_to_e_reader_post_meta_migrated' ) ) {
+			global $wpdb;
+			$wpdb->update(
+				$wpdb->postmeta,
+				array( 'meta_key' => self::POST_META ),
+				array( 'meta_key' => self::OLD_POST_META )
+			);
+			update_option( 'send_to_e_reader_post_meta_migrated', true );
+		}
 	}
 
 	/**
@@ -476,17 +487,8 @@ class Send_To_E_Reader {
 				$query_vars,
 				array(
 					'nopaging'     => true,
-					'meta_query'   => array(
-						'relation' => 'AND',
-						array(
-							'key'     => self::POST_META,
-							'compare' => 'NOT EXISTS',
-						),
-						array(
-							'key'     => self::OLD_POST_META,
-							'compare' => 'NOT EXISTS',
-						),
-					),
+					'meta_key'     => self::POST_META,
+					'meta_compare' => 'NOT EXISTS',
 				)
 			)
 		);

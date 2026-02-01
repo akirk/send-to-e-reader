@@ -6,7 +6,7 @@
  */
 
 $pending_articles = isset( $args['pending_articles'] ) ? $args['pending_articles'] : array();
-$pending_count = isset( $args['pending_count'] ) ? $args['pending_count'] : count( $pending_articles );
+$has_more_pending = isset( $args['has_more_pending'] ) ? $args['has_more_pending'] : false;
 $reviewed_articles = isset( $args['reviewed_articles'] ) ? $args['reviewed_articles'] : array();
 $nonce = isset( $args['nonce'] ) ? $args['nonce'] : '';
 $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
@@ -21,7 +21,6 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 		<div class="ereader-widget-tabs">
 			<button type="button" class="ereader-tab active" data-tab="pending">
 				<?php esc_html_e( 'Pending Review', 'send-to-e-reader' ); ?>
-				<span class="count">(<?php echo esc_html( $pending_count ); ?>)</span>
 			</button>
 			<button type="button" class="ereader-tab" data-tab="reviewed">
 				<?php esc_html_e( 'Reviewed', 'send-to-e-reader' ); ?>
@@ -34,35 +33,7 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 					<?php esc_html_e( 'All caught up! No articles pending review.', 'send-to-e-reader' ); ?>
 				</p>
 			<?php else : ?>
-				<?php if ( $pending_count > count( $pending_articles ) ) : ?>
-					<p class="ereader-truncation-notice">
-						<?php
-						printf(
-							/* translators: %1$d is shown count, %2$d is total count */
-							esc_html__( 'Showing %1$d of %2$d pending articles.', 'send-to-e-reader' ),
-							count( $pending_articles ),
-							$pending_count
-						);
-						?>
-					</p>
-				<?php endif; ?>
-				<?php if ( $pending_count > 5 ) : ?>
-					<div class="ereader-dismiss-section">
-						<p class="description">
-							<?php esc_html_e( 'Have old articles from before the notes system? Dismiss them to start fresh.', 'send-to-e-reader' ); ?>
-						</p>
-						<button type="button" class="button ereader-dismiss-old-btn">
-							<?php
-							printf(
-								/* translators: %d is the number of articles */
-								esc_html__( 'Dismiss all %d pending articles', 'send-to-e-reader' ),
-								$pending_count
-							);
-							?>
-						</button>
-					</div>
-				<?php endif; ?>
-				<ul class="ereader-article-list">
+				<ul class="ereader-article-list ereader-pending-list">
 					<?php foreach ( $pending_articles as $article ) : ?>
 						<li class="ereader-article-item" data-article-id="<?php echo esc_attr( $article['id'] ); ?>">
 							<div class="ereader-article-header">
@@ -112,6 +83,13 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 						</li>
 					<?php endforeach; ?>
 				</ul>
+				<?php if ( $has_more_pending ) : ?>
+					<div class="ereader-load-more-section">
+						<button type="button" class="button ereader-load-more-btn" data-offset="<?php echo count( $pending_articles ); ?>">
+							<?php esc_html_e( 'Load more articles', 'send-to-e-reader' ); ?>
+						</button>
+					</div>
+				<?php endif; ?>
 			<?php endif; ?>
 		</div>
 
