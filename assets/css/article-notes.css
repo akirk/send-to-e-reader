@@ -314,3 +314,35 @@
 .ereader-reviewed-list .ereader-article-item:last-child {
 	margin-bottom: 0;
 }
+
+/* Dismiss Section */
+.ereader-dismiss-section {
+	background: #fff8e5;
+	border: 1px solid #dba617;
+	border-radius: 4px;
+	padding: 12px;
+	margin-bottom: 12px;
+}
+
+.ereader-dismiss-section .description {
+	margin: 0 0 8px 0;
+	color: #6e4e00;
+}
+
+.ereader-dismiss-old-btn {
+	background: #fff;
+}
+
+.ereader-dismiss-old-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Truncation Notice */
+.ereader-truncation-notice {
+	font-size: 12px;
+	color: #787c82;
+	font-style: italic;
+	margin: 0 0 8px 0;
+	padding: 0;
+}

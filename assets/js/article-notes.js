@@ -113,6 +113,12 @@
 				var checked = $(this).prop('checked');
 				$('.ereader-reviewed-list input[type="checkbox"]').prop('checked', checked);
 			});
+
+			// Dismiss old articles.
+			$(document).on('click', '.ereader-dismiss-old-btn', function(e) {
+				e.preventDefault();
+				self.dismissOldArticles();
+			});
 		},
 
 		/**
@@ -213,6 +219,36 @@
 				}
 				$pendingTab.find('.count').text('(' + count + ')');
 			}
+		},
+
+		/**
+		 * Dismiss all old/pending articles.
+		 */
+		dismissOldArticles: function() {
+			if (!confirm('This will mark all pending articles as "Skipped". Continue?')) {
+				return;
+			}
+
+			var $btn = $('.ereader-dismiss-old-btn');
+			$btn.prop('disabled', true).text('Dismissing...');
+
+			$.post(ereaderArticleNotes.ajaxurl, {
+				action: 'ereader_dismiss_old_articles',
+				_ajax_nonce: ereaderArticleNotes.nonce
+			})
+				.done(function(response) {
+					if (response.success) {
+						// Reload the page to show updated state.
+						window.location.reload();
+					} else {
+						alert(response.data || 'Error dismissing articles');
+						$btn.prop('disabled', false).text('Dismiss old articles');
+					}
+				})
+				.fail(function() {
+					alert('Error dismissing articles');
+					$btn.prop('disabled', false).text('Dismiss old articles');
+				});
 		},
 
 		/**

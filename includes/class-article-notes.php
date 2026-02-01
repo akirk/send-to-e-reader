@@ -49,6 +49,7 @@ class Article_Notes {
 		add_action( 'wp_ajax_ereader_save_note', array( $this, 'ajax_save_note' ) );
 		add_action( 'wp_ajax_ereader_get_notes', array( $this, 'ajax_get_notes' ) );
 		add_action( 'wp_ajax_ereader_create_post_from_notes', array( $this, 'ajax_create_post_from_notes' ) );
+		add_action( 'wp_ajax_ereader_dismiss_old_articles', array( $this, 'ajax_dismiss_old_articles' ) );
 		add_action( 'before_delete_post', array( $this, 'maybe_delete_note' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
 	}
@@ -97,13 +98,15 @@ class Article_Notes {
 	 */
 	public function render_dashboard_widget() {
 		$this->enqueue_widget_assets();
+		$pending_count = $this->get_pending_articles_count();
 		$this->plugin->get_template_loader()->get_template_part(
 			'admin/article-notes-widget',
 			null,
 			array(
-				'pending_articles' => $this->get_pending_articles(),
+				'pending_articles'  => $this->get_pending_articles(),
+				'pending_count'     => $pending_count,
 				'reviewed_articles' => $this->get_reviewed_articles( 5 ),
-				'nonce' => wp_create_nonce( 'ereader-article-notes' ),
+				'nonce'             => wp_create_nonce( 'ereader-article-notes' ),
 			)
 		);
 	}
@@ -146,6 +149,22 @@ class Article_Notes {
 	}
 
 	/**
+	 * Get post types to query for articles.
+	 *
+	 * @return array Array of post type names.
+	 */
+	private function get_article_post_types() {
+		$post_types = get_post_types( array( 'public' => true ), 'names' );
+
+		// Include Friends plugin post type if it exists.
+		if ( post_type_exists( 'friend_post_cache' ) ) {
+			$post_types['friend_post_cache'] = 'friend_post_cache';
+		}
+
+		return array_values( $post_types );
+	}
+
+	/**
 	 * Get articles that have been downloaded but not yet reviewed.
 	 *
 	 * @param int $limit Maximum number of articles to return.
@@ -153,7 +172,7 @@ class Article_Notes {
 	 */
 	public function get_pending_articles( $limit = 20 ) {
 		$args = array(
-			'post_type'      => 'any',
+			'post_type'      => $this->get_article_post_types(),
 			'posts_per_page' => $limit,
 			'post_status'    => 'any',
 			'meta_query'     => array(
@@ -178,6 +197,35 @@ class Article_Notes {
 	}
 
 	/**
+	 * Get the count of pending articles (for migration notice).
+	 *
+	 * @return int Count of pending articles.
+	 */
+	public function get_pending_articles_count() {
+		$args = array(
+			'post_type'      => $this->get_article_post_types(),
+			'posts_per_page' => -1,
+			'post_status'    => 'any',
+			'fields'         => 'ids',
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'     => Send_To_E_Reader::POST_META,
+					'compare' => 'EXISTS',
+				),
+				array(
+					'key'     => self::NOTE_ID_META,
+					'compare' => 'NOT EXISTS',
+				),
+			),
+		);
+
+		$posts = get_posts( $args );
+
+		return count( $posts );
+	}
+
+	/**
 	 * Get articles that have been reviewed.
 	 *
 	 * @param int $limit Maximum number of articles to return.
@@ -185,7 +233,7 @@ class Article_Notes {
 	 */
 	public function get_reviewed_articles( $limit = 20 ) {
 		$args = array(
-			'post_type'      => 'any',
+			'post_type'      => $this->get_article_post_types(),
 			'posts_per_page' => $limit,
 			'post_status'    => 'any',
 			'meta_query'     => array(
@@ -518,6 +566,57 @@ class Article_Notes {
 		}
 
 		return implode( PHP_EOL . PHP_EOL, $blocks );
+	}
+
+	/**
+	 * AJAX handler for dismissing old articles (marking all pending as skipped).
+	 */
+	public function ajax_dismiss_old_articles() {
+		check_ajax_referer( 'ereader-article-notes' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'send-to-e-reader' ) );
+		}
+
+		// Get all pending articles.
+		$args = array(
+			'post_type'      => $this->get_article_post_types(),
+			'posts_per_page' => -1,
+			'post_status'    => 'any',
+			'fields'         => 'ids',
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'     => Send_To_E_Reader::POST_META,
+					'compare' => 'EXISTS',
+				),
+				array(
+					'key'     => self::NOTE_ID_META,
+					'compare' => 'NOT EXISTS',
+				),
+			),
+		);
+
+		$article_ids = get_posts( $args );
+		$count = 0;
+
+		foreach ( $article_ids as $article_id ) {
+			$note_id = $this->save_note( $article_id, self::STATUS_SKIPPED, 0, '' );
+			if ( $note_id ) {
+				$count++;
+			}
+		}
+
+		wp_send_json_success(
+			array(
+				'count'   => $count,
+				'message' => sprintf(
+					/* translators: %d is the number of articles dismissed */
+					__( '%d articles marked as skipped.', 'send-to-e-reader' ),
+					$count
+				),
+			)
+		);
 	}
 
 	/**
