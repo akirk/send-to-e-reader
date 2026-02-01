@@ -23,6 +23,7 @@ class Article_Notes {
 	const STATUS_UNREAD = 'unread';
 	const STATUS_READ = 'read';
 	const STATUS_SKIPPED = 'skipped';
+	const STATUS_ARCHIVED = 'archived';
 
 	/**
 	 * Reference to the main plugin instance.
@@ -53,6 +54,163 @@ class Article_Notes {
 		add_action( 'wp_ajax_ereader_dismiss_old_articles', array( $this, 'ajax_dismiss_old_articles' ) );
 		add_action( 'before_delete_post', array( $this, 'maybe_delete_note' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
+		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
+	}
+
+	/**
+	 * Register admin menu page.
+	 */
+	public function register_admin_menu() {
+		add_submenu_page(
+			'options-general.php',
+			__( 'Article Notes', 'send-to-e-reader' ),
+			__( 'Article Notes', 'send-to-e-reader' ),
+			'edit_posts',
+			'ereader-article-notes',
+			array( $this, 'render_admin_page' )
+		);
+	}
+
+	/**
+	 * Render the admin page.
+	 */
+	public function render_admin_page() {
+		$this->enqueue_admin_page_assets();
+
+		// Get current filter.
+		$status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : 'all';
+		$paged = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+		$per_page = 20;
+
+		// Get notes based on filter.
+		$notes_data = $this->get_all_notes( $status_filter, $per_page, ( $paged - 1 ) * $per_page );
+
+		$this->plugin->get_template_loader()->get_template_part(
+			'admin/article-notes-page',
+			null,
+			array(
+				'notes'         => $notes_data['notes'],
+				'total'         => $notes_data['total'],
+				'paged'         => $paged,
+				'per_page'      => $per_page,
+				'status_filter' => $status_filter,
+				'statuses'      => self::get_statuses(),
+				'nonce'         => wp_create_nonce( 'ereader-article-notes' ),
+			)
+		);
+	}
+
+	/**
+	 * Enqueue assets for the admin page.
+	 */
+	private function enqueue_admin_page_assets() {
+		$version = SEND_TO_E_READER_VERSION;
+
+		wp_enqueue_style(
+			'ereader-article-notes-admin',
+			plugins_url( 'assets/css/article-notes-admin.css', dirname( __FILE__ ) ),
+			array(),
+			$version
+		);
+
+		wp_enqueue_script(
+			'ereader-article-notes',
+			plugins_url( 'assets/js/article-notes.js', dirname( __FILE__ ) ),
+			array( 'jquery' ),
+			$version,
+			true
+		);
+
+		wp_localize_script(
+			'ereader-article-notes',
+			'ereaderArticleNotes',
+			array(
+				'ajaxurl'  => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'ereader-article-notes' ),
+				'statuses' => self::get_statuses(),
+				'i18n'     => array(
+					'saving'  => __( 'Saving...', 'send-to-e-reader' ),
+					'saved'   => __( 'Saved', 'send-to-e-reader' ),
+					'error'   => __( 'Error saving', 'send-to-e-reader' ),
+					'loading' => __( 'Loading...', 'send-to-e-reader' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Get all notes with optional filtering.
+	 *
+	 * @param string $status Status filter ('all', 'unread', 'read', 'skipped', 'archived').
+	 * @param int    $limit  Number of items per page.
+	 * @param int    $offset Offset for pagination.
+	 * @return array Array with 'notes' and 'total' keys.
+	 */
+	public function get_all_notes( $status = 'all', $limit = 20, $offset = 0 ) {
+		$meta_query = array();
+
+		if ( 'all' !== $status && in_array( $status, self::get_all_status_values(), true ) ) {
+			$meta_query[] = array(
+				'key'   => self::STATUS_META,
+				'value' => $status,
+			);
+		}
+
+		$args = array(
+			'post_type'      => self::POST_TYPE,
+			'posts_per_page' => $limit,
+			'offset'         => $offset,
+			'post_status'    => 'publish',
+			'orderby'        => 'date',
+			'order'          => 'DESC',
+		);
+
+		if ( ! empty( $meta_query ) ) {
+			$args['meta_query'] = $meta_query;
+		}
+
+		$query = new \WP_Query( $args );
+		$notes = array();
+
+		foreach ( $query->posts as $note_post ) {
+			$parent_id = $note_post->post_parent;
+			$parent = get_post( $parent_id );
+
+			if ( ! $parent ) {
+				continue;
+			}
+
+			$notes[] = array(
+				'id'          => $parent_id,
+				'note_id'     => $note_post->ID,
+				'title'       => get_the_title( $parent ),
+				'permalink'   => get_permalink( $parent ),
+				'author'      => $this->plugin->get_post_author_name( $parent ),
+				'status'      => get_post_meta( $note_post->ID, self::STATUS_META, true ) ?: self::STATUS_UNREAD,
+				'rating'      => (int) get_post_meta( $note_post->ID, self::RATING_META, true ),
+				'notes'       => $note_post->post_content,
+				'updated'     => $note_post->post_modified,
+			);
+		}
+
+		// Get total count.
+		$count_args = array(
+			'post_type'      => self::POST_TYPE,
+			'posts_per_page' => -1,
+			'post_status'    => 'publish',
+			'fields'         => 'ids',
+		);
+
+		if ( ! empty( $meta_query ) ) {
+			$count_args['meta_query'] = $meta_query;
+		}
+
+		$total = count( get_posts( $count_args ) );
+
+		return array(
+			'notes' => $notes,
+			'total' => $total,
+		);
 	}
 
 	/**
@@ -99,18 +257,19 @@ class Article_Notes {
 	 */
 	public function render_dashboard_widget() {
 		$this->enqueue_widget_assets();
-		$limit = 10;
+		$pending_limit = 5;
+		$other_limit = 10;
 
-		$pending_articles = $this->get_pending_articles( $limit + 1 );
-		$has_more_pending = count( $pending_articles ) > $limit;
+		$pending_articles = $this->get_pending_articles( $pending_limit + 1 );
+		$has_more_pending = count( $pending_articles ) > $pending_limit;
 		if ( $has_more_pending ) {
-			$pending_articles = array_slice( $pending_articles, 0, $limit );
+			$pending_articles = array_slice( $pending_articles, 0, $pending_limit );
 		}
 
-		$unread_articles = $this->get_unread_articles( $limit + 1 );
-		$has_more_unread = count( $unread_articles ) > $limit;
+		$unread_articles = $this->get_unread_articles( $other_limit + 1 );
+		$has_more_unread = count( $unread_articles ) > $other_limit;
 		if ( $has_more_unread ) {
-			$unread_articles = array_slice( $unread_articles, 0, $limit );
+			$unread_articles = array_slice( $unread_articles, 0, $other_limit );
 		}
 
 		$this->plugin->get_template_loader()->get_template_part(
@@ -119,9 +278,10 @@ class Article_Notes {
 			array(
 				'pending_articles'  => $pending_articles,
 				'has_more_pending'  => $has_more_pending,
+				'pending_limit'     => $pending_limit,
 				'unread_articles'   => $unread_articles,
 				'has_more_unread'   => $has_more_unread,
-				'reviewed_articles' => $this->get_reviewed_articles( 10 ),
+				'reviewed_articles' => $this->get_reviewed_articles( $other_limit ),
 				'nonce'             => wp_create_nonce( 'ereader-article-notes' ),
 			)
 		);
@@ -430,7 +590,7 @@ class Article_Notes {
 			return false;
 		}
 
-		if ( null !== $status && in_array( $status, array( self::STATUS_UNREAD, self::STATUS_READ, self::STATUS_SKIPPED ), true ) ) {
+		if ( null !== $status && in_array( $status, self::get_all_status_values(), true ) ) {
 			update_post_meta( $note_id, self::STATUS_META, $status );
 		}
 
@@ -751,6 +911,20 @@ class Article_Notes {
 			self::STATUS_UNREAD  => __( 'Not read yet', 'send-to-e-reader' ),
 			self::STATUS_READ    => __( 'Read', 'send-to-e-reader' ),
 			self::STATUS_SKIPPED => __( 'Skipped', 'send-to-e-reader' ),
+		);
+	}
+
+	/**
+	 * Get all valid status values including archived.
+	 *
+	 * @return array Array of status values.
+	 */
+	public static function get_all_status_values() {
+		return array(
+			self::STATUS_UNREAD,
+			self::STATUS_READ,
+			self::STATUS_SKIPPED,
+			self::STATUS_ARCHIVED,
 		);
 	}
 }

@@ -38,7 +38,10 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 					<?php esc_html_e( 'No new articles to review.', 'send-to-e-reader' ); ?>
 				</p>
 			<?php else : ?>
-				<ul class="ereader-article-list ereader-pending-list">
+				<p class="ereader-tab-hint">
+				<?php esc_html_e( 'Mark your reading status. Articles move to Unread or Reviewed tab.', 'send-to-e-reader' ); ?>
+			</p>
+			<ul class="ereader-article-list ereader-pending-list">
 					<?php foreach ( $pending_articles as $article ) : ?>
 						<li class="ereader-article-item" data-article-id="<?php echo esc_attr( $article['id'] ); ?>">
 							<div class="ereader-article-header">
@@ -104,7 +107,10 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 					<?php esc_html_e( 'No unread articles.', 'send-to-e-reader' ); ?>
 				</p>
 			<?php else : ?>
-				<ul class="ereader-article-list ereader-unread-list">
+				<p class="ereader-tab-hint">
+				<?php esc_html_e( 'Articles marked as "Not read yet". Mark as Read or Skipped to move to Reviewed.', 'send-to-e-reader' ); ?>
+			</p>
+			<ul class="ereader-article-list ereader-unread-list">
 					<?php foreach ( $unread_articles as $article ) : ?>
 						<li class="ereader-article-item" data-article-id="<?php echo esc_attr( $article['id'] ); ?>">
 							<div class="ereader-article-header">
@@ -170,7 +176,10 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 					<?php esc_html_e( 'No reviewed articles yet.', 'send-to-e-reader' ); ?>
 				</p>
 			<?php else : ?>
-				<ul class="ereader-article-list ereader-reviewed-list">
+				<p class="ereader-tab-hint">
+				<?php esc_html_e( 'Select articles to create a post, or Archive to hide from this list.', 'send-to-e-reader' ); ?>
+			</p>
+			<ul class="ereader-article-list ereader-reviewed-list">
 					<?php foreach ( $reviewed_articles as $article ) : ?>
 						<li class="ereader-article-item" data-article-id="<?php echo esc_attr( $article['id'] ); ?>">
 							<div class="ereader-article-header">
@@ -210,6 +219,10 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 										</button>
 									<?php endfor; ?>
 								</div>
+
+								<button type="button" class="ereader-archive-btn" title="<?php esc_attr_e( 'Archive - hide from this list', 'send-to-e-reader' ); ?>">
+									<?php esc_html_e( 'Archive', 'send-to-e-reader' ); ?>
+								</button>
 							</div>
 
 							<?php if ( ! empty( $article['notes'] ) ) : ?>

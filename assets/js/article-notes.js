@@ -39,12 +39,30 @@
 				var $item = $btn.closest('.ereader-article-item');
 				var articleId = $item.data('article-id');
 				var status = $btn.data('status');
+				var currentTab = $('.ereader-tab.active').data('tab');
 
 				self.saveNote(articleId, { status: status }, $item);
 
 				// Update UI.
 				$item.find('.ereader-status-btn').removeClass('active');
 				$btn.addClass('active');
+
+				// Check if item should move to another tab.
+				var shouldMove = false;
+				if (currentTab === 'pending') {
+					// Any status in pending moves the item out.
+					shouldMove = true;
+				} else if (currentTab === 'unread' && (status === 'read' || status === 'skipped' || status === 'archived')) {
+					// Read, Skipped, or Archived in unread moves to reviewed.
+					shouldMove = true;
+				} else if (currentTab === 'reviewed' && status === 'unread') {
+					// Changing back to unread moves to unread tab.
+					shouldMove = true;
+				}
+
+				if (shouldMove) {
+					self.animateItemRemoval($item);
+				}
 			});
 
 			// Star rating clicks.
@@ -119,6 +137,17 @@
 				e.preventDefault();
 				self.loadMorePending($(this));
 			});
+
+			// Archive button clicks.
+			$(document).on('click', '.ereader-archive-btn', function(e) {
+				e.preventDefault();
+				var $btn = $(this);
+				var $item = $btn.closest('.ereader-article-item');
+				var articleId = $item.data('article-id');
+
+				self.saveNote(articleId, { status: 'archived' }, $item);
+				self.animateItemRemoval($item);
+			});
 		},
 
 		/**
@@ -151,6 +180,21 @@
 					$star.removeClass('active').html('&#9734;');
 				}
 			});
+		},
+
+		/**
+		 * Animate item removal from list.
+		 *
+		 * @param {jQuery} $item The article item to remove.
+		 */
+		animateItemRemoval: function($item) {
+			$item.addClass('ereader-moving');
+			setTimeout(function() {
+				$item.addClass('ereader-removed');
+				setTimeout(function() {
+					$item.remove();
+				}, 300);
+			}, 500);
 		},
 
 		/**

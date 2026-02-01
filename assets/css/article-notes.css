@@ -63,6 +63,35 @@
 	text-align: center;
 }
 
+/* Tab hint */
+.ereader-tab-hint {
+	color: #787c82;
+	font-size: 12px;
+	margin: 0 0 12px;
+	padding: 8px;
+	background: #f6f7f7;
+	border-radius: 3px;
+}
+
+/* Article item animations */
+.ereader-article-item {
+	transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.ereader-article-item.ereader-moving {
+	opacity: 0.5;
+	transform: translateX(10px);
+}
+
+.ereader-article-item.ereader-removed {
+	opacity: 0;
+	transform: translateX(100%);
+	max-height: 0;
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
+}
+
 /* Article List */
 .ereader-article-list {
 	list-style: none;
@@ -326,4 +355,23 @@
 .ereader-load-more-btn:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
+}
+
+/* Archive Button */
+.ereader-archive-btn {
+	padding: 4px 8px;
+	font-size: 11px;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	cursor: pointer;
+	color: #787c82;
+	transition: all 0.2s ease;
+	margin-left: auto;
+}
+
+.ereader-archive-btn:hover {
+	background: #f0f0f1;
+	border-color: #8c8f94;
+	color: #50575e;
 }
