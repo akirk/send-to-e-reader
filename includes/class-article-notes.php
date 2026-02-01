@@ -154,14 +154,28 @@ class Article_Notes {
 	 * @return array Array of post type names.
 	 */
 	private function get_article_post_types() {
-		$post_types = get_post_types( array( 'public' => true ), 'names' );
+		// Get all registered post types to ensure we don't miss any.
+		$post_types = get_post_types( array(), 'names' );
 
-		// Include Friends plugin post type if it exists.
-		if ( post_type_exists( 'friend_post_cache' ) ) {
-			$post_types['friend_post_cache'] = 'friend_post_cache';
-		}
+		// Exclude our own note post type and some WordPress internals.
+		$exclude = array(
+			self::POST_TYPE,
+			'revision',
+			'nav_menu_item',
+			'custom_css',
+			'customize_changeset',
+			'oembed_cache',
+			'user_request',
+			'wp_block',
+			'wp_template',
+			'wp_template_part',
+			'wp_global_styles',
+			'wp_navigation',
+			'wp_font_family',
+			'wp_font_face',
+		);
 
-		return array_values( $post_types );
+		return array_values( array_diff( $post_types, $exclude ) );
 	}
 
 	/**
