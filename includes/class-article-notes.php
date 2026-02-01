@@ -191,10 +191,19 @@ class Article_Notes {
 			'post_status'    => 'any',
 			'meta_query'     => array(
 				'relation' => 'AND',
+				// Must have been sent (either old or new meta key).
 				array(
-					'key'     => Send_To_E_Reader::POST_META,
-					'compare' => 'EXISTS',
+					'relation' => 'OR',
+					array(
+						'key'     => Send_To_E_Reader::POST_META,
+						'compare' => 'EXISTS',
+					),
+					array(
+						'key'     => Send_To_E_Reader::OLD_POST_META,
+						'compare' => 'EXISTS',
+					),
 				),
+				// Must not have a note yet.
 				array(
 					'key'     => self::NOTE_ID_META,
 					'compare' => 'NOT EXISTS',
@@ -223,10 +232,19 @@ class Article_Notes {
 			'fields'         => 'ids',
 			'meta_query'     => array(
 				'relation' => 'AND',
+				// Must have been sent (either old or new meta key).
 				array(
-					'key'     => Send_To_E_Reader::POST_META,
-					'compare' => 'EXISTS',
+					'relation' => 'OR',
+					array(
+						'key'     => Send_To_E_Reader::POST_META,
+						'compare' => 'EXISTS',
+					),
+					array(
+						'key'     => Send_To_E_Reader::OLD_POST_META,
+						'compare' => 'EXISTS',
+					),
 				),
+				// Must not have a note yet.
 				array(
 					'key'     => self::NOTE_ID_META,
 					'compare' => 'NOT EXISTS',
@@ -600,10 +618,19 @@ class Article_Notes {
 			'fields'         => 'ids',
 			'meta_query'     => array(
 				'relation' => 'AND',
+				// Must have been sent (either old or new meta key).
 				array(
-					'key'     => Send_To_E_Reader::POST_META,
-					'compare' => 'EXISTS',
+					'relation' => 'OR',
+					array(
+						'key'     => Send_To_E_Reader::POST_META,
+						'compare' => 'EXISTS',
+					),
+					array(
+						'key'     => Send_To_E_Reader::OLD_POST_META,
+						'compare' => 'EXISTS',
+					),
 				),
+				// Must not have a note yet.
 				array(
 					'key'     => self::NOTE_ID_META,
 					'compare' => 'NOT EXISTS',

@@ -476,8 +476,17 @@ class Send_To_E_Reader {
 				$query_vars,
 				array(
 					'nopaging'     => true,
-					'meta_key'     => self::POST_META,
-					'meta_compare' => 'NOT EXISTS',
+					'meta_query'   => array(
+						'relation' => 'AND',
+						array(
+							'key'     => self::POST_META,
+							'compare' => 'NOT EXISTS',
+						),
+						array(
+							'key'     => self::OLD_POST_META,
+							'compare' => 'NOT EXISTS',
+						),
+					),
 				)
 			)
 		);
