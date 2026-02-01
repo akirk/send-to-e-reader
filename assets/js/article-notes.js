@@ -195,13 +195,14 @@
 		},
 
 		/**
-		 * Load more pending articles.
+		 * Load more articles.
 		 *
 		 * @param {jQuery} $btn The load more button.
 		 */
 		loadMorePending: function($btn) {
 			var self = this;
 			var offset = $btn.data('offset');
+			var type = $btn.data('type') || 'pending';
 			var originalText = $btn.text();
 
 			$btn.prop('disabled', true).text(ereaderArticleNotes.i18n.loading || 'Loading...');
@@ -209,11 +210,12 @@
 			$.post(ereaderArticleNotes.ajaxurl, {
 				action: 'ereader_load_more_pending',
 				_ajax_nonce: ereaderArticleNotes.nonce,
-				offset: offset
+				offset: offset,
+				type: type
 			})
 				.done(function(response) {
 					if (response.success && response.data.articles) {
-						var $list = $('.ereader-pending-list');
+						var $list = $('.ereader-' + type + '-list');
 
 						// Append new articles.
 						response.data.articles.forEach(function(article) {

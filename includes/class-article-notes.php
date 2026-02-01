@@ -100,18 +100,28 @@ class Article_Notes {
 	public function render_dashboard_widget() {
 		$this->enqueue_widget_assets();
 		$limit = 10;
+
 		$pending_articles = $this->get_pending_articles( $limit + 1 );
 		$has_more_pending = count( $pending_articles ) > $limit;
 		if ( $has_more_pending ) {
 			$pending_articles = array_slice( $pending_articles, 0, $limit );
 		}
+
+		$unread_articles = $this->get_unread_articles( $limit + 1 );
+		$has_more_unread = count( $unread_articles ) > $limit;
+		if ( $has_more_unread ) {
+			$unread_articles = array_slice( $unread_articles, 0, $limit );
+		}
+
 		$this->plugin->get_template_loader()->get_template_part(
 			'admin/article-notes-widget',
 			null,
 			array(
 				'pending_articles'  => $pending_articles,
 				'has_more_pending'  => $has_more_pending,
-				'reviewed_articles' => $this->get_reviewed_articles( 5 ),
+				'unread_articles'   => $unread_articles,
+				'has_more_unread'   => $has_more_unread,
+				'reviewed_articles' => $this->get_reviewed_articles( 10 ),
 				'nonce'             => wp_create_nonce( 'ereader-article-notes' ),
 			)
 		);
@@ -221,24 +231,107 @@ class Article_Notes {
 	}
 
 	/**
-	 * Get articles that have been reviewed.
+	 * Get articles marked as unread (has note but status is unread).
+	 *
+	 * @param int $limit  Maximum number of articles to return.
+	 * @param int $offset Number of articles to skip.
+	 * @return array Array of post objects with note data.
+	 */
+	public function get_unread_articles( $limit = 20, $offset = 0 ) {
+		// Get note IDs with unread status.
+		$note_ids = get_posts(
+			array(
+				'post_type'      => self::POST_TYPE,
+				'posts_per_page' => -1,
+				'post_status'    => 'publish',
+				'fields'         => 'ids',
+				'meta_query'     => array(
+					array(
+						'key'   => self::STATUS_META,
+						'value' => self::STATUS_UNREAD,
+					),
+				),
+			)
+		);
+
+		if ( empty( $note_ids ) ) {
+			return array();
+		}
+
+		// Get the parent article IDs.
+		$article_ids = array();
+		foreach ( $note_ids as $note_id ) {
+			$parent_id = wp_get_post_parent_id( $note_id );
+			if ( $parent_id ) {
+				$article_ids[] = $parent_id;
+			}
+		}
+
+		if ( empty( $article_ids ) ) {
+			return array();
+		}
+
+		$args = array(
+			'post_type'      => $this->get_article_post_types(),
+			'posts_per_page' => $limit,
+			'offset'         => $offset,
+			'post_status'    => 'any',
+			'post__in'       => $article_ids,
+			'orderby'        => 'post__in',
+		);
+
+		$posts = get_posts( $args );
+
+		return array_map( array( $this, 'prepare_article_data' ), $posts );
+	}
+
+	/**
+	 * Get articles that have been reviewed (read or skipped).
 	 *
 	 * @param int $limit Maximum number of articles to return.
 	 * @return array Array of post objects with note data.
 	 */
 	public function get_reviewed_articles( $limit = 20 ) {
+		// Get note IDs with read or skipped status.
+		$note_ids = get_posts(
+			array(
+				'post_type'      => self::POST_TYPE,
+				'posts_per_page' => -1,
+				'post_status'    => 'publish',
+				'fields'         => 'ids',
+				'meta_query'     => array(
+					array(
+						'key'     => self::STATUS_META,
+						'value'   => array( self::STATUS_READ, self::STATUS_SKIPPED ),
+						'compare' => 'IN',
+					),
+				),
+			)
+		);
+
+		if ( empty( $note_ids ) ) {
+			return array();
+		}
+
+		// Get the parent article IDs.
+		$article_ids = array();
+		foreach ( $note_ids as $note_id ) {
+			$parent_id = wp_get_post_parent_id( $note_id );
+			if ( $parent_id ) {
+				$article_ids[] = $parent_id;
+			}
+		}
+
+		if ( empty( $article_ids ) ) {
+			return array();
+		}
+
 		$args = array(
 			'post_type'      => $this->get_article_post_types(),
 			'posts_per_page' => $limit,
 			'post_status'    => 'any',
-			'meta_query'     => array(
-				array(
-					'key'     => self::NOTE_ID_META,
-					'compare' => 'EXISTS',
-				),
-			),
-			'orderby'        => 'modified',
-			'order'          => 'DESC',
+			'post__in'       => $article_ids,
+			'orderby'        => 'post__in',
 		);
 
 		$posts = get_posts( $args );
@@ -453,9 +546,15 @@ class Article_Notes {
 		}
 
 		$offset = isset( $_POST['offset'] ) ? (int) $_POST['offset'] : 0;
+		$type = isset( $_POST['type'] ) ? sanitize_text_field( wp_unslash( $_POST['type'] ) ) : 'pending';
 		$limit = 10;
 
-		$articles = $this->get_pending_articles( $limit + 1, $offset );
+		if ( 'unread' === $type ) {
+			$articles = $this->get_unread_articles( $limit + 1, $offset );
+		} else {
+			$articles = $this->get_pending_articles( $limit + 1, $offset );
+		}
+
 		$has_more = count( $articles ) > $limit;
 		if ( $has_more ) {
 			$articles = array_slice( $articles, 0, $limit );
