@@ -1,5 +1,7 @@
 /**
- * Article Notes Widget JavaScript
+ * Article Notes Widget JavaScript - Triage Mode
+ *
+ * Simplified JavaScript for quick triage: Read, Revisit, or Skip.
  *
  * @package Send_To_E_Reader
  */
@@ -32,92 +34,62 @@
 				self.switchTab($(this).data('tab'));
 			});
 
-			// Status button clicks.
-			$(document).on('click', '.ereader-status-btn', function(e) {
+			// Triage button clicks (Read, Revisit, Skip).
+			$(document).on('click', '.ereader-triage-btn', function(e) {
 				e.preventDefault();
 				var $btn = $(this);
 				var $item = $btn.closest('.ereader-article-item');
 				var articleId = $item.data('article-id');
 				var status = $btn.data('status');
-				var currentTab = $('.ereader-tab.active').data('tab');
 
-				self.saveNote(articleId, { status: status }, $item);
+				// Get quick note if any.
+				var notes = $item.find('.ereader-quick-note-input').val() || '';
 
-				// Update UI.
-				$item.find('.ereader-status-btn').removeClass('active');
-				$btn.addClass('active');
+				// Save with status and notes.
+				self.saveNote(articleId, { status: status, notes: notes }, $item);
 
-				// Check if item should move to another tab.
-				var shouldMove = false;
-				if (currentTab === 'pending') {
-					// Any status in pending moves the item out.
-					shouldMove = true;
-				} else if (currentTab === 'unread' && (status === 'read' || status === 'skipped' || status === 'archived')) {
-					// Read, Skipped, or Archived in unread moves to reviewed.
-					shouldMove = true;
-				} else if (currentTab === 'reviewed' && status === 'unread') {
-					// Changing back to unread moves to unread tab.
-					shouldMove = true;
-				}
-
-				if (shouldMove) {
-					self.animateItemRemoval($item);
-				}
+				// Animate removal from triage list.
+				self.animateItemRemoval($item);
 			});
 
-			// Star rating clicks.
-			$(document).on('click', '.ereader-star', function(e) {
+			// Quick note toggle.
+			$(document).on('click', '.ereader-quick-note-toggle', function(e) {
 				e.preventDefault();
-				var $star = $(this);
-				var $item = $star.closest('.ereader-article-item');
-				var $ratingContainer = $star.closest('.ereader-rating');
-				var articleId = $item.data('article-id');
-				var rating = $star.data('rating');
-
-				self.saveNote(articleId, { rating: rating }, $item);
-
-				// Update UI.
-				self.updateStars($ratingContainer, rating);
-			});
-
-			// Notes textarea - save on blur with debounce.
-			$(document).on('input', '.ereader-notes', function() {
-				var $textarea = $(this);
-				var $item = $textarea.closest('.ereader-article-item');
-				var articleId = $item.data('article-id');
-
-				// Clear existing timer for this article.
-				if (self.saveTimers[articleId]) {
-					clearTimeout(self.saveTimers[articleId]);
-				}
-
-				// Set new debounced save.
-				self.saveTimers[articleId] = setTimeout(function() {
-					self.saveNote(articleId, { notes: $textarea.val() }, $item);
-				}, 1000);
-			});
-
-			// Also save on blur.
-			$(document).on('blur', '.ereader-notes', function() {
-				var $textarea = $(this);
-				var $item = $textarea.closest('.ereader-article-item');
-				var articleId = $item.data('article-id');
-
-				// Clear pending timer and save immediately.
-				if (self.saveTimers[articleId]) {
-					clearTimeout(self.saveTimers[articleId]);
-					delete self.saveTimers[articleId];
-				}
-
-				self.saveNote(articleId, { notes: $textarea.val() }, $item);
-			});
-
-			// Toggle notes in reviewed list.
-			$(document).on('click', '.ereader-notes-preview', function() {
 				var $item = $(this).closest('.ereader-article-item');
-				$(this).hide();
-				$item.find('.ereader-notes-wrapper').show();
-				$item.find('.ereader-notes').focus();
+				var $notes = $item.find('.ereader-quick-notes');
+				$notes.slideToggle(200);
+				if ($notes.is(':visible')) {
+					$notes.find('.ereader-quick-note-input').focus();
+				}
+			});
+
+			// Quick note input - save on blur.
+			$(document).on('blur', '.ereader-quick-note-input', function() {
+				var $input = $(this);
+				var $item = $input.closest('.ereader-article-item');
+				var articleId = $item.data('article-id');
+				var notes = $input.val();
+
+				if (notes) {
+					self.saveNote(articleId, { notes: notes }, $item);
+				}
+			});
+
+			// Archive button clicks.
+			$(document).on('click', '.ereader-archive-btn', function(e) {
+				e.preventDefault();
+				var $btn = $(this);
+				var $item = $btn.closest('.ereader-article-item');
+				var articleId = $item.data('article-id');
+
+				self.saveNote(articleId, { status: 'archived' }, $item);
+				self.animateItemRemoval($item);
+			});
+
+			// Load more pending articles.
+			$(document).on('click', '.ereader-load-more-btn', function(e) {
+				e.preventDefault();
+				self.loadMorePending($(this));
 			});
 
 			// Create post from selected.
@@ -130,23 +102,6 @@
 			$(document).on('change', '.ereader-select-all', function() {
 				var checked = $(this).prop('checked');
 				$('.ereader-reviewed-list input[type="checkbox"]').prop('checked', checked);
-			});
-
-			// Load more pending articles.
-			$(document).on('click', '.ereader-load-more-btn', function(e) {
-				e.preventDefault();
-				self.loadMorePending($(this));
-			});
-
-			// Archive button clicks.
-			$(document).on('click', '.ereader-archive-btn', function(e) {
-				e.preventDefault();
-				var $btn = $(this);
-				var $item = $btn.closest('.ereader-article-item');
-				var articleId = $item.data('article-id');
-
-				self.saveNote(articleId, { status: 'archived' }, $item);
-				self.animateItemRemoval($item);
 			});
 		},
 
@@ -164,25 +119,6 @@
 		},
 
 		/**
-		 * Update star display.
-		 *
-		 * @param {jQuery} $container Rating container.
-		 * @param {number} rating Current rating.
-		 */
-		updateStars: function($container, rating) {
-			$container.data('rating', rating);
-			$container.find('.ereader-star').each(function(index) {
-				var $star = $(this);
-				var starRating = index + 1;
-				if (starRating <= rating) {
-					$star.addClass('active').html('&#9733;');
-				} else {
-					$star.removeClass('active').html('&#9734;');
-				}
-			});
-		},
-
-		/**
 		 * Animate item removal from list.
 		 *
 		 * @param {jQuery} $item The article item to remove.
@@ -193,8 +129,15 @@
 				$item.addClass('ereader-removed');
 				setTimeout(function() {
 					$item.remove();
+
+					// Check if list is now empty.
+					var $list = $('.ereader-pending-list');
+					if ($list.length && $list.children().length === 0) {
+						$list.closest('.ereader-tab-content').find('.ereader-tab-hint').remove();
+						$list.replaceWith('<p class="ereader-no-articles">No new articles to triage. Great job!</p>');
+					}
 				}, 300);
-			}, 500);
+			}, 200);
 		},
 
 		/**
@@ -263,7 +206,7 @@
 
 						// Append new articles.
 						response.data.articles.forEach(function(article) {
-							$list.append(self.renderArticleItem(article));
+							$list.append(self.renderTriageItem(article));
 						});
 
 						// Update button offset or hide if no more.
@@ -283,16 +226,16 @@
 		},
 
 		/**
-		 * Render an article item HTML.
+		 * Render a triage article item HTML.
 		 *
 		 * @param {object} article Article data.
 		 * @return {string} HTML string.
 		 */
-		renderArticleItem: function(article) {
-			var statuses = ereaderArticleNotes.statuses || {
-				'unread': 'Not read yet',
+		renderTriageItem: function(article) {
+			var statuses = ereaderArticleNotes.triageStatuses || {
 				'read': 'Read',
-				'skipped': 'Skipped'
+				'revisit': 'Revisit',
+				'skipped': 'Skip'
 			};
 
 			var html = '<li class="ereader-article-item" data-article-id="' + article.id + '">';
@@ -304,24 +247,17 @@
 			}
 			html += '</span></div>';
 
-			html += '<div class="ereader-article-controls">';
-			html += '<div class="ereader-status-buttons">';
+			html += '<div class="ereader-triage-controls">';
+			html += '<div class="ereader-triage-buttons">';
 			for (var key in statuses) {
-				var activeClass = article.status === key ? ' active' : '';
-				html += '<button type="button" class="ereader-status-btn' + activeClass + '" data-status="' + key + '" title="' + statuses[key] + '">' + statuses[key] + '</button>';
+				html += '<button type="button" class="ereader-triage-btn ereader-triage-' + key + '" data-status="' + key + '" title="' + statuses[key] + '">' + statuses[key] + '</button>';
 			}
 			html += '</div>';
+			html += '<button type="button" class="ereader-quick-note-toggle" title="Add a quick note"><span class="dashicons dashicons-edit"></span></button>';
+			html += '</div>';
 
-			html += '<div class="ereader-rating" data-rating="' + article.rating + '">';
-			for (var i = 1; i <= 5; i++) {
-				var starActive = i <= article.rating ? ' active' : '';
-				var starChar = i <= article.rating ? '&#9733;' : '&#9734;';
-				html += '<button type="button" class="ereader-star' + starActive + '" data-rating="' + i + '" title="' + i + ' stars">' + starChar + '</button>';
-			}
-			html += '</div></div>';
-
-			html += '<div class="ereader-notes-wrapper">';
-			html += '<textarea class="ereader-notes" placeholder="Add your notes..." rows="2">' + this.escapeHtml(article.notes || '') + '</textarea>';
+			html += '<div class="ereader-quick-notes" style="display: none;">';
+			html += '<input type="text" class="ereader-quick-note-input" placeholder="Quick note (optional)..." value="' + this.escapeHtml(article.notes || '') + '">';
 			html += '</div>';
 
 			html += '<div class="ereader-save-status"></div>';

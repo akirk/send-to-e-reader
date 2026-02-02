@@ -20,7 +20,7 @@ class Article_Notes {
 	const RATING_META = 'ereader_rating';
 	const STATUS_META = 'ereader_status';
 
-	const STATUS_UNREAD = 'unread';
+	const STATUS_REVISIT = 'revisit';
 	const STATUS_READ = 'read';
 	const STATUS_SKIPPED = 'skipped';
 	const STATUS_ARCHIVED = 'archived';
@@ -47,14 +47,19 @@ class Article_Notes {
 	 */
 	private function register_hooks() {
 		add_action( 'init', array( $this, 'register_post_type' ) );
+		add_action( 'init', array( $this, 'register_review_page_rewrite' ) );
+		add_action( 'template_redirect', array( $this, 'render_review_page' ) );
 		add_action( 'wp_ajax_ereader_save_note', array( $this, 'ajax_save_note' ) );
 		add_action( 'wp_ajax_ereader_get_notes', array( $this, 'ajax_get_notes' ) );
 		add_action( 'wp_ajax_ereader_load_more_pending', array( $this, 'ajax_load_more_pending' ) );
 		add_action( 'wp_ajax_ereader_create_post_from_notes', array( $this, 'ajax_create_post_from_notes' ) );
+		add_action( 'wp_ajax_ereader_create_single_post', array( $this, 'ajax_create_single_post' ) );
 		add_action( 'wp_ajax_ereader_dismiss_old_articles', array( $this, 'ajax_dismiss_old_articles' ) );
+		add_action( 'wp_ajax_ereader_get_article_content', array( $this, 'ajax_get_article_content' ) );
 		add_action( 'before_delete_post', array( $this, 'maybe_delete_note' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
+		add_filter( 'query_vars', array( $this, 'add_review_query_vars' ) );
 	}
 
 	/**
@@ -266,23 +271,24 @@ class Article_Notes {
 			$pending_articles = array_slice( $pending_articles, 0, $pending_limit );
 		}
 
-		$unread_articles = $this->get_unread_articles( $other_limit + 1 );
-		$has_more_unread = count( $unread_articles ) > $other_limit;
-		if ( $has_more_unread ) {
-			$unread_articles = array_slice( $unread_articles, 0, $other_limit );
+		$revisit_articles = $this->get_revisit_articles( $other_limit + 1 );
+		$has_more_revisit = count( $revisit_articles ) > $other_limit;
+		if ( $has_more_revisit ) {
+			$revisit_articles = array_slice( $revisit_articles, 0, $other_limit );
 		}
 
 		$this->plugin->get_template_loader()->get_template_part(
 			'admin/article-notes-widget',
 			null,
 			array(
-				'pending_articles'  => $pending_articles,
-				'has_more_pending'  => $has_more_pending,
-				'pending_limit'     => $pending_limit,
-				'unread_articles'   => $unread_articles,
-				'has_more_unread'   => $has_more_unread,
-				'reviewed_articles' => $this->get_reviewed_articles( $other_limit ),
-				'nonce'             => wp_create_nonce( 'ereader-article-notes' ),
+				'pending_articles'   => $pending_articles,
+				'has_more_pending'   => $has_more_pending,
+				'pending_limit'      => $pending_limit,
+				'revisit_articles'   => $revisit_articles,
+				'has_more_revisit'   => $has_more_revisit,
+				'reviewed_articles'  => $this->get_reviewed_articles( $other_limit ),
+				'revisit_count'      => count( $this->get_revisit_articles( -1 ) ),
+				'nonce'              => wp_create_nonce( 'ereader-article-notes' ),
 			)
 		);
 	}
@@ -312,10 +318,12 @@ class Article_Notes {
 			'ereader-article-notes',
 			'ereaderArticleNotes',
 			array(
-				'ajaxurl'  => admin_url( 'admin-ajax.php' ),
-				'nonce'    => wp_create_nonce( 'ereader-article-notes' ),
-				'statuses' => self::get_statuses(),
-				'i18n'     => array(
+				'ajaxurl'        => admin_url( 'admin-ajax.php' ),
+				'nonce'          => wp_create_nonce( 'ereader-article-notes' ),
+				'statuses'       => self::get_statuses(),
+				'triageStatuses' => self::get_triage_statuses(),
+				'reviewPageUrl'  => $this->get_review_page_url(),
+				'i18n'           => array(
 					'saving'        => __( 'Saving...', 'send-to-e-reader' ),
 					'saved'         => __( 'Saved', 'send-to-e-reader' ),
 					'error'         => __( 'Error saving', 'send-to-e-reader' ),
@@ -391,14 +399,14 @@ class Article_Notes {
 	}
 
 	/**
-	 * Get articles marked as unread (has note but status is unread).
+	 * Get articles marked for revisit (has note but status is revisit).
 	 *
 	 * @param int $limit  Maximum number of articles to return.
 	 * @param int $offset Number of articles to skip.
 	 * @return array Array of post objects with note data.
 	 */
-	public function get_unread_articles( $limit = 20, $offset = 0 ) {
-		// Get note IDs with unread status.
+	public function get_revisit_articles( $limit = 20, $offset = 0 ) {
+		// Get note IDs with revisit status.
 		$note_ids = get_posts(
 			array(
 				'post_type'      => self::POST_TYPE,
@@ -408,7 +416,7 @@ class Article_Notes {
 				'meta_query'     => array(
 					array(
 						'key'   => self::STATUS_META,
-						'value' => self::STATUS_UNREAD,
+						'value' => self::STATUS_REVISIT,
 					),
 				),
 			)
@@ -517,7 +525,7 @@ class Article_Notes {
 			'sent_date'   => $sent_date ? date_i18n( get_option( 'date_format' ), $sent_date ) : '',
 			'excerpt'     => get_the_excerpt( $post ),
 			'note_id'     => $note ? $note['id'] : 0,
-			'status'      => $note ? $note['status'] : self::STATUS_UNREAD,
+			'status'      => $note ? $note['status'] : '',
 			'rating'      => $note ? $note['rating'] : 0,
 			'notes'       => $note ? $note['notes'] : '',
 		);
@@ -546,7 +554,7 @@ class Article_Notes {
 
 		return array(
 			'id'      => $note_post->ID,
-			'status'  => get_post_meta( $note_post->ID, self::STATUS_META, true ) ?: self::STATUS_UNREAD,
+			'status'  => get_post_meta( $note_post->ID, self::STATUS_META, true ) ?: self::STATUS_REVISIT,
 			'rating'  => (int) get_post_meta( $note_post->ID, self::RATING_META, true ),
 			'notes'   => $note_post->post_content,
 			'updated' => $note_post->post_modified,
@@ -709,8 +717,8 @@ class Article_Notes {
 		$type = isset( $_POST['type'] ) ? sanitize_text_field( wp_unslash( $_POST['type'] ) ) : 'pending';
 		$limit = 10;
 
-		if ( 'unread' === $type ) {
-			$articles = $this->get_unread_articles( $limit + 1, $offset );
+		if ( 'revisit' === $type ) {
+			$articles = $this->get_revisit_articles( $limit + 1, $offset );
 		} else {
 			$articles = $this->get_pending_articles( $limit + 1, $offset );
 		}
@@ -902,13 +910,26 @@ class Article_Notes {
 	}
 
 	/**
+	 * Get triage statuses (for the dashboard widget).
+	 *
+	 * @return array Associative array of status => label.
+	 */
+	public static function get_triage_statuses() {
+		return array(
+			self::STATUS_READ    => __( 'Read', 'send-to-e-reader' ),
+			self::STATUS_REVISIT => __( 'Revisit', 'send-to-e-reader' ),
+			self::STATUS_SKIPPED => __( 'Skip', 'send-to-e-reader' ),
+		);
+	}
+
+	/**
 	 * Get all valid reading statuses.
 	 *
 	 * @return array Associative array of status => label.
 	 */
 	public static function get_statuses() {
 		return array(
-			self::STATUS_UNREAD  => __( 'Not read yet', 'send-to-e-reader' ),
+			self::STATUS_REVISIT => __( 'Revisit', 'send-to-e-reader' ),
 			self::STATUS_READ    => __( 'Read', 'send-to-e-reader' ),
 			self::STATUS_SKIPPED => __( 'Skipped', 'send-to-e-reader' ),
 		);
@@ -921,10 +942,258 @@ class Article_Notes {
 	 */
 	public static function get_all_status_values() {
 		return array(
-			self::STATUS_UNREAD,
+			self::STATUS_REVISIT,
 			self::STATUS_READ,
 			self::STATUS_SKIPPED,
 			self::STATUS_ARCHIVED,
 		);
+	}
+
+	/**
+	 * Register rewrite rules for the review page.
+	 */
+	public function register_review_page_rewrite() {
+		add_rewrite_rule(
+			'^article-review/?$',
+			'index.php?ereader_review_page=1',
+			'top'
+		);
+		add_rewrite_rule(
+			'^article-review/([0-9]+)/?$',
+			'index.php?ereader_review_page=1&ereader_article_id=$matches[1]',
+			'top'
+		);
+	}
+
+	/**
+	 * Add query vars for the review page.
+	 *
+	 * @param array $vars Existing query vars.
+	 * @return array Modified query vars.
+	 */
+	public function add_review_query_vars( $vars ) {
+		$vars[] = 'ereader_review_page';
+		$vars[] = 'ereader_article_id';
+		return $vars;
+	}
+
+	/**
+	 * Render the review page on the frontend.
+	 */
+	public function render_review_page() {
+		if ( ! get_query_var( 'ereader_review_page' ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'send-to-e-reader' ) );
+		}
+
+		$this->enqueue_review_page_assets();
+
+		// Get the revisit queue.
+		$revisit_articles = $this->get_revisit_articles( -1 );
+		$article_id = get_query_var( 'ereader_article_id' );
+		$current_index = 0;
+		$current_article = null;
+
+		if ( $article_id ) {
+			// Find the article in the queue.
+			foreach ( $revisit_articles as $index => $article ) {
+				if ( (int) $article['id'] === (int) $article_id ) {
+					$current_index = $index;
+					$current_article = $article;
+					break;
+				}
+			}
+		}
+
+		// If no specific article requested or not found, use first in queue.
+		if ( ! $current_article && ! empty( $revisit_articles ) ) {
+			$current_article = $revisit_articles[0];
+			$article_id = $current_article['id'];
+		}
+
+		// Get article content if we have an article.
+		$article_content = '';
+		$article_post = null;
+		if ( $current_article ) {
+			$article_post = get_post( $article_id );
+			if ( $article_post ) {
+				$article_content = apply_filters( 'the_content', $article_post->post_content );
+			}
+		}
+
+		// Calculate prev/next.
+		$prev_article = $current_index > 0 ? $revisit_articles[ $current_index - 1 ] : null;
+		$next_article = $current_index < count( $revisit_articles ) - 1 ? $revisit_articles[ $current_index + 1 ] : null;
+
+		// Get the note data.
+		$note = $current_article ? $this->get_note( $article_id ) : null;
+
+		$this->plugin->get_template_loader()->get_template_part(
+			'frontend/article-review',
+			null,
+			array(
+				'article'          => $current_article,
+				'article_post'     => $article_post,
+				'article_content'  => $article_content,
+				'note'             => $note,
+				'queue_count'      => count( $revisit_articles ),
+				'current_position' => $current_index + 1,
+				'prev_article'     => $prev_article,
+				'next_article'     => $next_article,
+				'nonce'            => wp_create_nonce( 'ereader-article-notes' ),
+				'statuses'         => self::get_statuses(),
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Enqueue assets for the review page.
+	 */
+	private function enqueue_review_page_assets() {
+		$version = SEND_TO_E_READER_VERSION;
+
+		wp_enqueue_style(
+			'ereader-article-review',
+			plugins_url( 'assets/css/article-review.css', dirname( __FILE__ ) ),
+			array(),
+			$version
+		);
+
+		wp_enqueue_script(
+			'ereader-article-review',
+			plugins_url( 'assets/js/article-review.js', dirname( __FILE__ ) ),
+			array( 'jquery' ),
+			$version,
+			true
+		);
+
+		wp_localize_script(
+			'ereader-article-review',
+			'ereaderArticleReview',
+			array(
+				'ajaxurl'     => admin_url( 'admin-ajax.php' ),
+				'nonce'       => wp_create_nonce( 'ereader-article-notes' ),
+				'reviewUrl'   => home_url( '/article-review/' ),
+				'dashboardUrl' => admin_url(),
+				'i18n'        => array(
+					'saving'  => __( 'Saving...', 'send-to-e-reader' ),
+					'saved'   => __( 'Saved', 'send-to-e-reader' ),
+					'error'   => __( 'Error saving', 'send-to-e-reader' ),
+					'loading' => __( 'Loading...', 'send-to-e-reader' ),
+					'confirmComplete' => __( 'Mark this article as reviewed and remove from queue?', 'send-to-e-reader' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * AJAX handler for getting article content.
+	 */
+	public function ajax_get_article_content() {
+		check_ajax_referer( 'ereader-article-notes' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'send-to-e-reader' ) );
+		}
+
+		$article_id = isset( $_GET['article_id'] ) ? (int) $_GET['article_id'] : 0;
+
+		if ( ! $article_id ) {
+			wp_send_json_error( __( 'Invalid article ID.', 'send-to-e-reader' ) );
+		}
+
+		$post = get_post( $article_id );
+
+		if ( ! $post ) {
+			wp_send_json_error( __( 'Article not found.', 'send-to-e-reader' ) );
+		}
+
+		$note = $this->get_note( $article_id );
+
+		wp_send_json_success(
+			array(
+				'id'        => $post->ID,
+				'title'     => get_the_title( $post ),
+				'content'   => apply_filters( 'the_content', $post->post_content ),
+				'author'    => $this->plugin->get_post_author_name( $post ),
+				'permalink' => get_permalink( $post ),
+				'date'      => get_the_date( '', $post ),
+				'note'      => $note,
+			)
+		);
+	}
+
+	/**
+	 * AJAX handler for creating a post from a single article's notes.
+	 */
+	public function ajax_create_single_post() {
+		check_ajax_referer( 'ereader-article-notes' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'send-to-e-reader' ) );
+		}
+
+		$article_id = isset( $_POST['article_id'] ) ? (int) $_POST['article_id'] : 0;
+
+		if ( ! $article_id ) {
+			wp_send_json_error( __( 'Invalid article ID.', 'send-to-e-reader' ) );
+		}
+
+		$post = get_post( $article_id );
+		if ( ! $post ) {
+			wp_send_json_error( __( 'Article not found.', 'send-to-e-reader' ) );
+		}
+
+		$note = $this->get_note( $article_id );
+		if ( ! $note || empty( $note['notes'] ) ) {
+			wp_send_json_error( __( 'No notes found for this article.', 'send-to-e-reader' ) );
+		}
+
+		$post_title = sprintf(
+			/* translators: %s is the article title */
+			__( 'Notes on: %s', 'send-to-e-reader' ),
+			get_the_title( $post )
+		);
+
+		$post_content = $this->generate_post_content( array( $article_id ) );
+
+		$new_post_id = wp_insert_post(
+			array(
+				'post_title'   => $post_title,
+				'post_content' => $post_content,
+				'post_status'  => 'draft',
+				'post_type'    => 'post',
+			)
+		);
+
+		if ( is_wp_error( $new_post_id ) ) {
+			wp_send_json_error( $new_post_id->get_error_message() );
+		}
+
+		wp_send_json_success(
+			array(
+				'post_id'  => $new_post_id,
+				'edit_url' => get_edit_post_link( $new_post_id, 'raw' ),
+				'message'  => __( 'Post created successfully.', 'send-to-e-reader' ),
+			)
+		);
+	}
+
+	/**
+	 * Get the URL to the article review page.
+	 *
+	 * @param int $article_id Optional article ID.
+	 * @return string URL to the review page.
+	 */
+	public function get_review_page_url( $article_id = 0 ) {
+		$url = home_url( '/article-review/' );
+		if ( $article_id ) {
+			$url .= intval( $article_id ) . '/';
+		}
+		return $url;
 	}
 }

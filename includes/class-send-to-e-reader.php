@@ -1062,5 +1062,8 @@ class Send_To_E_Reader {
 			}
 				update_option( self::EREADERS_OPTION, $ereaders );
 		}
+
+		// Flush rewrite rules for the article review page.
+		flush_rewrite_rules();
 	}
 }

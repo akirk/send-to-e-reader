@@ -1,11 +1,37 @@
 /**
- * Article Notes Widget Styles
+ * Article Notes Widget Styles - Triage Mode
+ *
+ * Simplified styles for quick triage: Read, Revisit, or Skip.
  *
  * @package Send_To_E_Reader
  */
 
 .ereader-article-notes-widget {
 	margin: -11px -12px;
+}
+
+/* Revisit Banner */
+.ereader-revisit-banner {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px;
+	background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%);
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.ereader-revisit-icon {
+	font-size: 24px;
+}
+
+.ereader-revisit-text {
+	flex: 1;
+	font-weight: 500;
+	color: #1d2327;
+}
+
+.ereader-start-review {
+	white-space: nowrap;
 }
 
 /* Tabs */
@@ -75,7 +101,7 @@
 
 /* Article item animations */
 .ereader-article-item {
-	transition: opacity 0.3s ease, transform 0.3s ease;
+	transition: opacity 0.2s ease, transform 0.2s ease, max-height 0.3s ease;
 }
 
 .ereader-article-item.ereader-moving {
@@ -138,150 +164,118 @@
 	color: #787c82;
 }
 
-/* Select article checkbox */
-.ereader-select-article {
+/* Triage Controls */
+.ereader-triage-controls {
 	display: flex;
-	align-items: flex-start;
-	gap: 6px;
-}
-
-.ereader-select-article input[type="checkbox"] {
-	margin-top: 3px;
-}
-
-/* Controls Row */
-.ereader-article-controls {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12px;
 	align-items: center;
-	margin-bottom: 8px;
+	gap: 8px;
 }
 
-/* Status Buttons */
-.ereader-status-buttons {
+.ereader-triage-buttons {
 	display: flex;
 	gap: 4px;
 }
 
-.ereader-status-btn {
-	padding: 4px 8px;
-	font-size: 11px;
+.ereader-triage-btn {
+	padding: 6px 12px;
+	font-size: 12px;
+	font-weight: 500;
 	background: #f6f7f7;
 	border: 1px solid #c3c4c7;
 	border-radius: 3px;
 	cursor: pointer;
-	color: #50575e;
-	transition: all 0.2s ease;
+	transition: all 0.15s ease;
 }
 
-.ereader-status-btn:hover {
+.ereader-triage-btn:hover {
 	background: #f0f0f1;
 	border-color: #8c8f94;
 }
 
-.ereader-status-btn.active {
-	background: #2271b1;
-	border-color: #2271b1;
-	color: #fff;
+/* Read button - green */
+.ereader-triage-read {
+	background: #f0fdf4;
+	border-color: #86efac;
+	color: #166534;
 }
 
-.ereader-status-btn.active:hover {
-	background: #135e96;
-	border-color: #135e96;
+.ereader-triage-read:hover {
+	background: #dcfce7;
+	border-color: #4ade80;
 }
 
-/* Star Rating */
-.ereader-rating {
-	display: flex;
-	gap: 2px;
+/* Revisit button - blue */
+.ereader-triage-revisit {
+	background: #eff6ff;
+	border-color: #93c5fd;
+	color: #1e40af;
 }
 
-.ereader-star {
+.ereader-triage-revisit:hover {
+	background: #dbeafe;
+	border-color: #60a5fa;
+}
+
+/* Skip button - gray */
+.ereader-triage-skipped {
+	background: #f9fafb;
+	border-color: #d1d5db;
+	color: #6b7280;
+}
+
+.ereader-triage-skipped:hover {
+	background: #f3f4f6;
+	border-color: #9ca3af;
+}
+
+/* Quick note toggle */
+.ereader-quick-note-toggle {
+	padding: 4px 6px;
 	background: none;
-	border: none;
+	border: 1px solid transparent;
+	border-radius: 3px;
 	cursor: pointer;
-	font-size: 18px;
-	color: #dcdcde;
-	padding: 0;
-	line-height: 1;
-	transition: color 0.15s ease;
+	color: #787c82;
+	transition: all 0.15s ease;
+	margin-left: auto;
 }
 
-.ereader-star:hover,
-.ereader-star.active {
-	color: #ffb900;
+.ereader-quick-note-toggle:hover {
+	background: #f0f0f1;
+	border-color: #c3c4c7;
+	color: #50575e;
 }
 
-.ereader-rating:hover .ereader-star {
-	color: #dcdcde;
+.ereader-quick-note-toggle .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
 }
 
-.ereader-rating:hover .ereader-star:hover,
-.ereader-rating:hover .ereader-star:hover ~ .ereader-star {
-	color: #dcdcde;
-}
-
-.ereader-rating .ereader-star:hover,
-.ereader-rating .ereader-star:hover ~ .ereader-star {
-	color: #dcdcde;
-}
-
-.ereader-rating:hover .ereader-star:hover,
-.ereader-rating:hover .ereader-star.hovered {
-	color: #ffb900;
-}
-
-/* Make stars highlight up to hovered star */
-.ereader-rating:hover .ereader-star {
-	color: #ffb900;
-}
-
-.ereader-rating:hover .ereader-star:hover ~ .ereader-star {
-	color: #dcdcde;
-}
-
-/* Notes */
-.ereader-notes-wrapper {
+/* Quick notes */
+.ereader-quick-notes {
 	margin-top: 8px;
 }
 
-.ereader-notes {
+.ereader-quick-note-input {
 	width: 100%;
-	min-height: 50px;
-	padding: 8px;
+	padding: 6px 8px;
 	border: 1px solid #c3c4c7;
 	border-radius: 4px;
 	font-size: 13px;
-	resize: vertical;
 	box-sizing: border-box;
 }
 
-.ereader-notes:focus {
+.ereader-quick-note-input:focus {
 	border-color: #2271b1;
 	box-shadow: 0 0 0 1px #2271b1;
 	outline: none;
 }
 
-.ereader-notes-preview {
-	font-size: 12px;
-	color: #787c82;
-	font-style: italic;
-	cursor: pointer;
-	padding: 4px;
-	margin-top: 4px;
-	background: #f9f9f9;
-	border-radius: 3px;
-}
-
-.ereader-notes-preview:hover {
-	background: #f0f0f1;
-}
-
 /* Save Status */
 .ereader-save-status {
 	font-size: 11px;
-	min-height: 16px;
+	min-height: 14px;
 	margin-top: 4px;
 }
 
@@ -295,6 +289,85 @@
 
 .ereader-save-status.error {
 	color: #d63638;
+}
+
+/* Reviewed list */
+.ereader-reviewed-list .ereader-article-item {
+	background: #fafafa;
+	padding: 12px;
+	margin-bottom: 8px;
+	border: 1px solid #f0f0f1;
+	border-radius: 4px;
+}
+
+.ereader-reviewed-list .ereader-article-item:last-child {
+	margin-bottom: 0;
+}
+
+/* Select article checkbox */
+.ereader-select-article {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+}
+
+.ereader-select-article input[type="checkbox"] {
+	margin-top: 3px;
+}
+
+/* Status badge */
+.ereader-status-badge {
+	display: inline-block;
+	padding: 2px 6px;
+	font-size: 10px;
+	text-transform: uppercase;
+	border-radius: 3px;
+	font-weight: 500;
+}
+
+.ereader-status-read {
+	background: #dcfce7;
+	color: #166534;
+}
+
+.ereader-status-skipped {
+	background: #f3f4f6;
+	color: #6b7280;
+}
+
+/* Notes preview */
+.ereader-notes-preview {
+	font-size: 12px;
+	color: #787c82;
+	font-style: italic;
+	padding: 6px 8px;
+	margin-top: 6px;
+	background: #f9f9f9;
+	border-radius: 3px;
+	border-left: 3px solid #dcdcde;
+}
+
+/* Reviewed actions */
+.ereader-reviewed-actions {
+	margin-top: 8px;
+}
+
+/* Archive Button */
+.ereader-archive-btn {
+	padding: 4px 8px;
+	font-size: 11px;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	cursor: pointer;
+	color: #787c82;
+	transition: all 0.2s ease;
+}
+
+.ereader-archive-btn:hover {
+	background: #f0f0f1;
+	border-color: #8c8f94;
+	color: #50575e;
 }
 
 /* Create Post Section */
@@ -331,19 +404,6 @@
 	cursor: not-allowed;
 }
 
-/* Reviewed list specific */
-.ereader-reviewed-list .ereader-article-item {
-	background: #fafafa;
-	padding: 12px;
-	margin-bottom: 8px;
-	border: 1px solid #f0f0f1;
-	border-radius: 4px;
-}
-
-.ereader-reviewed-list .ereader-article-item:last-child {
-	margin-bottom: 0;
-}
-
 /* Load More Section */
 .ereader-load-more-section {
 	text-align: center;
@@ -355,23 +415,4 @@
 .ereader-load-more-btn:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
-}
-
-/* Archive Button */
-.ereader-archive-btn {
-	padding: 4px 8px;
-	font-size: 11px;
-	background: #f6f7f7;
-	border: 1px solid #c3c4c7;
-	border-radius: 3px;
-	cursor: pointer;
-	color: #787c82;
-	transition: all 0.2s ease;
-	margin-left: auto;
-}
-
-.ereader-archive-btn:hover {
-	background: #f0f0f1;
-	border-color: #8c8f94;
-	color: #50575e;
 }
