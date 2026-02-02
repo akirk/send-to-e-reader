@@ -25,9 +25,15 @@ class Send_To_E_Reader {
 	 */
 	private $friends;
 
+	/**
+	 * Article Notes instance.
+	 *
+	 * @var Article_Notes
+	 */
+	private $article_notes;
+
 	const POST_META = 'sent-to-ereader';
 	const EREADERS_OPTION = 'send-to-e-reader_readers';
-	const READING_SUMMARY_OPTION = 'send-to-e-reader_reading-summary';
 	const DOWNLOAD_PASSWORD_OPTION = 'send_to_e_reader_download_password';
 	const CRON_OPTION = 'send-to-e-reader_cron';
 
@@ -35,7 +41,6 @@ class Send_To_E_Reader {
 
 	const OLD_POST_META = 'friends-sent-to-ereader';
 	const OLD_EREADERS_OPTION = 'friends-send-to-e-reader_readers';
-	const OLD_READING_SUMMARY_OPTION = 'friends-send-to-e-reader_reading-summary';
 	const OLD_DOWNLOAD_PASSWORD_OPTION = 'friends_send_to_e_reader_download_password';
 	const OLD_CRON_OPTION = 'friends-send-to-e-reader_cron';
 	const OLD_USER_OPTION = 'friends_send_to_e_reader';
@@ -127,6 +132,16 @@ class Send_To_E_Reader {
 		$this->friends = $friends;
 		$this->maybe_migrate_options();
 		$this->register_hooks();
+		$this->article_notes = new Article_Notes( $this );
+	}
+
+	/**
+	 * Get the Article Notes instance.
+	 *
+	 * @return Article_Notes
+	 */
+	public function get_article_notes() {
+		return $this->article_notes;
 	}
 
 	/**
@@ -139,12 +154,6 @@ class Send_To_E_Reader {
 			delete_option( self::OLD_EREADERS_OPTION );
 		}
 
-		$old_summary = get_option( self::OLD_READING_SUMMARY_OPTION );
-		if ( false !== $old_summary && false === get_option( self::READING_SUMMARY_OPTION ) ) {
-			update_option( self::READING_SUMMARY_OPTION, $old_summary );
-			delete_option( self::OLD_READING_SUMMARY_OPTION );
-		}
-
 		$old_password = get_option( self::OLD_DOWNLOAD_PASSWORD_OPTION );
 		if ( false !== $old_password && false === get_option( self::DOWNLOAD_PASSWORD_OPTION ) ) {
 			update_option( self::DOWNLOAD_PASSWORD_OPTION, $old_password );
@@ -155,6 +164,17 @@ class Send_To_E_Reader {
 		if ( false !== $old_cron && false === get_option( self::CRON_OPTION ) ) {
 			update_option( self::CRON_OPTION, $old_cron );
 			delete_option( self::OLD_CRON_OPTION );
+		}
+
+		// Migrate post meta from old key to new key.
+		if ( ! get_option( 'send_to_e_reader_post_meta_migrated' ) ) {
+			global $wpdb;
+			$wpdb->update(
+				$wpdb->postmeta,
+				array( 'meta_key' => self::POST_META ),
+				array( 'meta_key' => self::OLD_POST_META )
+			);
+			update_option( 'send_to_e_reader_post_meta_migrated', true );
 		}
 	}
 
@@ -330,9 +350,7 @@ class Send_To_E_Reader {
 				'frontend/ereader/dialog',
 				null,
 				array(
-					'friend_name'             => $friend_name,
-					'reading_summary_enabled' => $this->reading_summary_enabled(),
-					'reading_summary_title'   => $this->reading_summary_title( $friend_name ),
+					'friend_name' => $friend_name,
 				)
 			);
 		}
@@ -582,15 +600,6 @@ class Send_To_E_Reader {
 			exit;
 		}
 
-		if ( isset( $_POST['reading_summary'] ) && $_POST['reading_summary'] && is_array( $result ) ) {
-			if ( ! empty( $_POST['reading_summary_title'] ) ) {
-				$reading_summary_title = sanitize_text_field( wp_unslash( $_POST['reading_summary_title'] ) );
-			} else {
-				$reading_summary_title = $this->reading_summary_title();
-			}
-			$this->create_reading_summary( $posts, $reading_summary_title );
-		}
-
 		foreach ( $posts as $post ) {
 			update_post_meta( $post->ID, self::POST_META, time() );
 		}
@@ -622,144 +631,14 @@ class Send_To_E_Reader {
 	}
 
 	/**
-	 * Remove the Private: for a private feed.
-	 *
-	 * @param  string $title_format The title format for a private post title.
-	 * @return string The modified title format for a private post title.
-	 */
-	public function private_title_format( $title_format ) {
-		return '%s';
-	}
-
-	protected function create_reading_summary( $posts, $reading_summary_title ) {
-		$post_content = array();
-
-		add_filter( 'private_title_format', array( $this, 'private_title_format' ) );
-
-		$summary_posts = get_posts(
-			array(
-				'title'       => $reading_summary_title,
-				'number'      => 1,
-				'post_status' => 'draft',
-			)
-		);
-		$summary_post_content = '';
-		if ( ! empty( $summary_posts ) ) {
-			$summary_post_content = $summary_posts[0]->post_content;
-		}
-
-		foreach ( $posts as $post ) {
-			$permalink = '"' . esc_url( get_the_permalink( $post ) ) . '"';
-			if ( false !== strpos( $summary_post_content, $permalink ) ) {
-				continue;
-			}
-			$group = array(
-				'metadata' => array(
-					'name' => get_the_title( $post ),
-				),
-				'layout'   => array(
-					'type' => 'constrained',
-				),
-			);
-
-			$content = '<!-- wp:group ' . wp_json_encode( $group ) . ' -->' . PHP_EOL . '<div class="wp-block-group">';
-
-			$content .= '<!-- wp:heading {"level":4} -->' . PHP_EOL . '<h4><a href=' . $permalink . '>';
-			$content .= wp_kses_post( get_the_title( $post ) );
-			$content .= '</a></h4>' . PHP_EOL;
-			$content .= '<!-- /wp:heading -->';
-			$content .= '<!-- wp:quote -->' . PHP_EOL . '<blockquote class="wp-block-quote"><p>' . wp_kses_post( get_the_excerpt( $post ) );
-			$content .= '</p></blockquote>' . PHP_EOL;
-			$content .= '<!-- /wp:quote -->';
-			$content .= '<!-- wp:paragraph -->' . PHP_EOL . '<p>';
-			$content .= apply_filters( 'send_to_ereader_reading_summary_paragraph_content', '', $post );
-			$content .= '</p>' . PHP_EOL;
-			$content .= '<!-- /wp:paragraph -->';
-			$content .= '</div>' . PHP_EOL;
-			$content .= '<!-- /wp:group -->';
-			$post_content[] = apply_filters( 'send_to_e_reader_summary_entry', $content, $post );
-		}
-
-		remove_filter( 'private_title_format', array( $this, 'private_title_format' ) );
-
-		if ( empty( $summary_posts ) ) {
-			wp_insert_post(
-				array(
-					'post_title'   => $reading_summary_title,
-					'post_status'  => 'draft',
-					'post_content' => implode( PHP_EOL, $post_content ),
-				)
-			);
-		} else {
-			$post = $summary_posts[0];
-			$post->post_content .= PHP_EOL . implode( PHP_EOL, $post_content );
-			wp_update_post( $post );
-		}
-	}
-
-	/**
-	 * Whether the Reading Summary is enabled.
-	 */
-	protected function reading_summary_enabled() {
-		$summary = get_option( self::READING_SUMMARY_OPTION, array() );
-		return isset( $summary['enabled'] ) && $summary['enabled'];
-	}
-
-	/**
-	 * Retrieve the Reading Summary title.
-
-	 * @param      string $author                The author.
-	 * @param      bool   $replace_placeholders  Whether to already replace the placeholders.
-	 *
-	 * @return     string  The reading summary title.
-	 */
-	protected function reading_summary_title( $author = null, $replace_placeholders = true ) {
-		$summary = get_option( self::READING_SUMMARY_OPTION, array() );
-
-		if ( empty( $summary['title'] ) ) {
-			$summary['title'] = sprintf(
-				// translators: %1$s is a month, %2$s is a year.
-				__( 'Reading Notes, %1$s %2$s', 'send-to-e-reader' ),
-				'$month',
-				'$year'
-			);
-		}
-
-		if ( ! $replace_placeholders ) {
-			return $summary['title'];
-		}
-
-		$replace = array(
-			'$date'   => date_i18n( __( 'F j, Y' ) ), // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
-			'$day'    => date_i18n( 'j' ),
-			'$month'  => date_i18n( 'F' ),
-			'$year'   => date_i18n( 'Y' ),
-			'$author' => $author,
-		);
-
-		return str_replace(
-			array_keys( $replace ),
-			array_values( $replace ),
-			$summary['title']
-		);
-	}
-
-	/**
 	 * Display the configure e-readers page for the plugin.
 	 */
 	public function settings() {
 		$nonce_value = 'send-to-e-reader';
 
 		if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( $_POST['_wpnonce'], $nonce_value ) ) {
-			$summary = array();
-
-			$summary['enabled'] = isset( $_POST['reading_summary'] ) && $_POST['reading_summary'];
-			$summary['title'] = sanitize_text_field( wp_unslash( $_POST['reading_summary_title'] ) );
-
-			update_option( self::READING_SUMMARY_OPTION, $summary );
 			update_option( self::DOWNLOAD_PASSWORD_OPTION, sanitize_text_field( wp_unslash( $_POST['download_password'] ) ) );
 		}
-		$summary = get_option( self::READING_SUMMARY_OPTION, array() );
 
 		$this->settings_header( 'send-to-e-reader-settings' );
 
@@ -772,14 +651,9 @@ class Send_To_E_Reader {
 			'admin/ereader-settings',
 			null,
 			array(
-				'nonce_value'           => $nonce_value,
-				'reading_summary'       => $this->reading_summary_enabled(),
-				'reading_summary_title' => $this->reading_summary_title( null, false ),
-				'download_password'     => get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) ),
-				'all-friends'           => $all_friends,
-
-				// 'cron_day' => $this->cron_day(),
-				// 'cron_ereader' => $this->cron_ereader(),
+				'nonce_value'       => $nonce_value,
+				'download_password' => get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) ),
+				'all-friends'       => $all_friends,
 			)
 		);
 
@@ -1095,8 +969,6 @@ class Send_To_E_Reader {
 			update_post_meta( $post->ID, self::POST_META, time() );
 		}
 
-		$this->create_reading_summary( $posts, $this->reading_summary_title() );
-
 		wp_redirect( $result['url'] );
 		exit;
 	}
@@ -1128,8 +1000,6 @@ class Send_To_E_Reader {
 		foreach ( $posts as $post ) {
 			update_post_meta( $post->ID, self::POST_META, time() );
 		}
-
-		$this->create_reading_summary( $posts, $this->reading_summary_title() );
 
 		if ( isset( $result['url'] ) ) {
 			wp_safe_redirect( $result['url'] );
