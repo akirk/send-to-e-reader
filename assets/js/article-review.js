@@ -113,9 +113,22 @@
 
 			// Different selection handling for touch vs mouse.
 			if (this.isTouchDevice()) {
-				// On touch devices, use selectionchange event.
+				// On touch devices, use multiple approaches for browser compatibility.
+				// 1. selectionchange event (works in Chrome Android).
 				document.addEventListener('selectionchange', function() {
 					self.handleMobileSelection();
+				});
+
+				// 2. Fallback: touchend with delay (for Firefox Android and others).
+				$('.ereader-article-body').on('touchend', function() {
+					// Check after a delay to let selection complete.
+					setTimeout(function() {
+						self.handleMobileSelection();
+					}, 300);
+					// Check again after native selection UI appears.
+					setTimeout(function() {
+						self.handleMobileSelection();
+					}, 600);
 				});
 			} else {
 				// Desktop: show popup near selection on mouseup.
