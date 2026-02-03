@@ -739,19 +739,54 @@
 	}
 }
 
+/* Mobile floating action button for selections */
+.ereader-selection-fab {
+	position: fixed;
+	bottom: 20px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 1000;
+	animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+	from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+	to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.ereader-add-note-fab {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 24px;
+	background: #2271b1;
+	border: none;
+	border-radius: 30px;
+	color: #fff;
+	font-size: 15px;
+	font-weight: 500;
+	cursor: pointer;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+	transition: all 0.15s ease;
+}
+
+.ereader-add-note-fab:hover,
+.ereader-add-note-fab:active {
+	background: #135e96;
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ereader-add-note-fab .dashicons {
+	font-size: 18px;
+	width: 18px;
+	height: 18px;
+}
+
 /* Mobile touch-friendly improvements */
 @media (max-width: 768px) {
+	/* Hide desktop popup on mobile - use FAB instead */
 	.ereader-selection-popup {
-		position: fixed;
-		bottom: 20px;
-		left: 50%;
-		transform: translateX(-50%);
-		top: auto;
-	}
-
-	.ereader-add-note-btn {
-		padding: 12px 20px;
-		font-size: 15px;
+		display: none !important;
 	}
 
 	.ereader-note-input-modal {

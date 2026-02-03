@@ -70,9 +70,17 @@
 		 * Create the selection popup element.
 		 */
 		createSelectionPopup: function() {
+			// Desktop popup (positioned near selection).
 			var popup = '<div class="ereader-selection-popup" style="display:none;">' +
 				'<button type="button" class="ereader-add-note-btn" title="' + (ereaderArticleReview.i18n.addNote || 'Add note') + '">' +
 				'<span class="dashicons dashicons-edit"></span> ' + (ereaderArticleReview.i18n.addNote || 'Add note') +
+				'</button>' +
+				'</div>';
+
+			// Mobile floating action button (fixed at bottom).
+			var fab = '<div class="ereader-selection-fab" style="display:none;">' +
+				'<button type="button" class="ereader-add-note-fab" title="' + (ereaderArticleReview.i18n.addNote || 'Add note') + '">' +
+				'<span class="dashicons dashicons-edit"></span> ' + (ereaderArticleReview.i18n.noteSelection || 'Note this selection') +
 				'</button>' +
 				'</div>';
 
@@ -87,7 +95,14 @@
 				'</div>' +
 				'</div>';
 
-			$('body').append(popup).append(noteInput);
+			$('body').append(popup).append(fab).append(noteInput);
+		},
+
+		/**
+		 * Check if device supports touch.
+		 */
+		isTouchDevice: function() {
+			return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 		},
 
 		/**
@@ -96,26 +111,40 @@
 		bindEvents: function() {
 			var self = this;
 
-			// Text selection in article body.
-			$('.ereader-article-body').on('mouseup touchend', function(e) {
-				// Small delay to let selection complete.
-				setTimeout(function() {
-					self.handleTextSelection(e);
-				}, 10);
-			});
+			// Different selection handling for touch vs mouse.
+			if (this.isTouchDevice()) {
+				// On touch devices, use selectionchange event.
+				document.addEventListener('selectionchange', function() {
+					self.handleMobileSelection();
+				});
+			} else {
+				// Desktop: show popup near selection on mouseup.
+				$('.ereader-article-body').on('mouseup', function(e) {
+					setTimeout(function() {
+						self.handleTextSelection(e);
+					}, 10);
+				});
+			}
 
-			// Hide popup when clicking elsewhere.
+			// Hide popup when clicking elsewhere (desktop).
 			$(document).on('mousedown touchstart', function(e) {
-				if (!$(e.target).closest('.ereader-selection-popup, .ereader-note-input-modal').length) {
+				if (!$(e.target).closest('.ereader-selection-popup, .ereader-note-input-modal, .ereader-selection-fab').length) {
 					$('.ereader-selection-popup').hide();
 				}
 			});
 
-			// Add note button click.
+			// Add note button click (desktop popup).
 			$(document).on('click', '.ereader-add-note-btn', function(e) {
 				e.preventDefault();
 				e.stopPropagation();
 				self.showNoteInput();
+			});
+
+			// Add note button click (mobile FAB).
+			$(document).on('click', '.ereader-add-note-fab', function(e) {
+				e.preventDefault();
+				e.stopPropagation();
+				self.captureSelectionAndShowInput();
 			});
 
 			// Save note from modal.
@@ -232,7 +261,7 @@
 		},
 
 		/**
-		 * Handle text selection in article body.
+		 * Handle text selection in article body (desktop).
 		 */
 		handleTextSelection: function(e) {
 			var selection = window.getSelection();
@@ -270,6 +299,52 @@
 				left: left + 'px',
 				top: top + 'px'
 			}).show();
+		},
+
+		/**
+		 * Handle text selection on mobile (shows/hides FAB).
+		 */
+		handleMobileSelection: function() {
+			var selection = window.getSelection();
+			var selectedText = selection.toString().trim();
+			var $fab = $('.ereader-selection-fab');
+
+			// Check if selection is within the article body.
+			var isInArticle = false;
+			if (selection.rangeCount > 0) {
+				var range = selection.getRangeAt(0);
+				var container = range.commonAncestorContainer;
+				isInArticle = $(container).closest('.ereader-article-body').length > 0;
+			}
+
+			if (selectedText.length >= 3 && isInArticle) {
+				$fab.show();
+			} else {
+				$fab.hide();
+			}
+		},
+
+		/**
+		 * Capture current selection and show note input (mobile).
+		 */
+		captureSelectionAndShowInput: function() {
+			var selection = window.getSelection();
+			var selectedText = selection.toString().trim();
+
+			if (selectedText.length < 3) {
+				$('.ereader-selection-fab').hide();
+				return;
+			}
+
+			// Store selection info.
+			this.currentSelection = {
+				text: selectedText,
+				range: selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null
+			};
+
+			// Hide FAB and show note input.
+			$('.ereader-selection-fab').hide();
+			this.showNoteInput();
 		},
 
 		/**
