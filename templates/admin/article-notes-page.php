@@ -69,6 +69,7 @@ $base_url = admin_url( 'options-general.php?page=ereader-article-notes' );
 							</strong>
 							<div class="ereader-article-author">
 								<?php echo esc_html( $note['author'] ); ?>
+								&bull; <a href="<?php echo esc_url( admin_url( 'admin.php?page=ereader-article-review&article_id=' . $note['id'] ) ); ?>"><?php esc_html_e( 'Review', 'send-to-e-reader' ); ?></a>
 							</div>
 						</td>
 						<td class="column-status">

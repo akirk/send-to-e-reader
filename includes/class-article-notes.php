@@ -52,6 +52,7 @@ class Article_Notes {
 		add_action( 'wp_ajax_ereader_load_more_pending', array( $this, 'ajax_load_more_pending' ) );
 		add_action( 'wp_ajax_ereader_create_post_from_notes', array( $this, 'ajax_create_post_from_notes' ) );
 		add_action( 'wp_ajax_ereader_dismiss_old_articles', array( $this, 'ajax_dismiss_old_articles' ) );
+		add_action( 'wp_ajax_ereader_save_selection', array( $this, 'ajax_save_selection' ) );
 		add_action( 'before_delete_post', array( $this, 'maybe_delete_note' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
@@ -68,6 +69,151 @@ class Article_Notes {
 			'edit_posts',
 			'ereader-article-notes',
 			array( $this, 'render_admin_page' )
+		);
+
+		// Hidden page for article review.
+		add_submenu_page(
+			null, // No parent - hidden from menu.
+			__( 'Review Article', 'send-to-e-reader' ),
+			__( 'Review Article', 'send-to-e-reader' ),
+			'edit_posts',
+			'ereader-article-review',
+			array( $this, 'render_article_review_page' )
+		);
+	}
+
+	/**
+	 * Render the article review page.
+	 */
+	public function render_article_review_page() {
+		$article_id = isset( $_GET['article_id'] ) ? (int) $_GET['article_id'] : 0;
+
+		if ( ! $article_id ) {
+			wp_die( esc_html__( 'No article specified.', 'send-to-e-reader' ) );
+		}
+
+		$article = get_post( $article_id );
+
+		if ( ! $article ) {
+			wp_die( esc_html__( 'Article not found.', 'send-to-e-reader' ) );
+		}
+
+		$this->enqueue_article_review_assets();
+
+		// Get existing note if any.
+		$note = $this->get_note( $article_id );
+
+		$this->plugin->get_template_loader()->get_template_part(
+			'admin/article-review',
+			null,
+			array(
+				'article'   => $article,
+				'note'      => $note,
+				'author'    => $this->plugin->get_post_author_name( $article ),
+				'nonce'     => wp_create_nonce( 'ereader-article-notes' ),
+				'back_url'  => admin_url( 'options-general.php?page=ereader-article-notes' ),
+			)
+		);
+	}
+
+	/**
+	 * Enqueue assets for the article review page.
+	 */
+	private function enqueue_article_review_assets() {
+		$version = SEND_TO_E_READER_VERSION;
+
+		wp_enqueue_style(
+			'ereader-article-review',
+			plugins_url( 'assets/css/article-review.css', dirname( __FILE__ ) ),
+			array(),
+			$version
+		);
+
+		wp_enqueue_script(
+			'ereader-article-review',
+			plugins_url( 'assets/js/article-review.js', dirname( __FILE__ ) ),
+			array( 'jquery' ),
+			$version,
+			true
+		);
+
+		wp_localize_script(
+			'ereader-article-review',
+			'ereaderArticleReview',
+			array(
+				'ajaxurl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( 'ereader-article-notes' ),
+				'i18n'    => array(
+					'selectStart'    => __( 'Tap to start selection', 'send-to-e-reader' ),
+					'selectEnd'      => __( 'Tap to end selection', 'send-to-e-reader' ),
+					'addComment'     => __( 'Add your comment...', 'send-to-e-reader' ),
+					'save'           => __( 'Save', 'send-to-e-reader' ),
+					'cancel'         => __( 'Cancel', 'send-to-e-reader' ),
+					'saving'         => __( 'Saving...', 'send-to-e-reader' ),
+					'saved'          => __( 'Saved!', 'send-to-e-reader' ),
+					'error'          => __( 'Error saving', 'send-to-e-reader' ),
+					'deleteSelection' => __( 'Delete', 'send-to-e-reader' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * AJAX handler for saving a text selection with comment.
+	 */
+	public function ajax_save_selection() {
+		check_ajax_referer( 'ereader-article-notes' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( __( 'Permission denied.', 'send-to-e-reader' ) );
+		}
+
+		$article_id = isset( $_POST['article_id'] ) ? (int) $_POST['article_id'] : 0;
+		$selections = isset( $_POST['selections'] ) ? $_POST['selections'] : array();
+
+		if ( ! $article_id ) {
+			wp_send_json_error( __( 'Invalid article ID.', 'send-to-e-reader' ) );
+		}
+
+		// Build block content from selections.
+		$blocks = array();
+		foreach ( $selections as $selection ) {
+			$text = isset( $selection['text'] ) ? sanitize_textarea_field( wp_unslash( $selection['text'] ) ) : '';
+			$comment = isset( $selection['comment'] ) ? sanitize_textarea_field( wp_unslash( $selection['comment'] ) ) : '';
+
+			if ( empty( $text ) ) {
+				continue;
+			}
+
+			// Create a quote block for the selection.
+			$block = '<!-- wp:quote -->' . PHP_EOL;
+			$block .= '<blockquote class="wp-block-quote"><p>' . esc_html( $text ) . '</p></blockquote>' . PHP_EOL;
+			$block .= '<!-- /wp:quote -->';
+
+			// Add comment as paragraph if provided.
+			if ( ! empty( $comment ) ) {
+				$block .= PHP_EOL . '<!-- wp:paragraph -->' . PHP_EOL;
+				$block .= '<p>' . esc_html( $comment ) . '</p>' . PHP_EOL;
+				$block .= '<!-- /wp:paragraph -->';
+			}
+
+			$blocks[] = $block;
+		}
+
+		$notes_content = implode( PHP_EOL . PHP_EOL, $blocks );
+
+		// Save as note content.
+		$note_id = $this->save_note( $article_id, null, null, $notes_content );
+
+		if ( ! $note_id ) {
+			wp_send_json_error( __( 'Failed to save selections.', 'send-to-e-reader' ) );
+		}
+
+		wp_send_json_success(
+			array(
+				'note_id' => $note_id,
+				'message' => __( 'Selections saved.', 'send-to-e-reader' ),
+			)
 		);
 	}
 

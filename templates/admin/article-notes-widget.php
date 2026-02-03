@@ -53,6 +53,7 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 									<?php if ( $article['sent_date'] ) : ?>
 										&bull; <?php echo esc_html( $article['sent_date'] ); ?>
 									<?php endif; ?>
+									&bull; <a href="<?php echo esc_url( admin_url( 'admin.php?page=ereader-article-review&article_id=' . $article['id'] ) ); ?>" class="ereader-review-link"><?php esc_html_e( 'Review', 'send-to-e-reader' ); ?></a>
 								</span>
 							</div>
 
@@ -122,6 +123,7 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 									<?php if ( $article['sent_date'] ) : ?>
 										&bull; <?php echo esc_html( $article['sent_date'] ); ?>
 									<?php endif; ?>
+									&bull; <a href="<?php echo esc_url( admin_url( 'admin.php?page=ereader-article-review&article_id=' . $article['id'] ) ); ?>" class="ereader-review-link"><?php esc_html_e( 'Review', 'send-to-e-reader' ); ?></a>
 								</span>
 							</div>
 

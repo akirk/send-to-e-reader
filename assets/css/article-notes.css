@@ -375,3 +375,14 @@
 	border-color: #8c8f94;
 	color: #50575e;
 }
+
+/* Review Link */
+.ereader-review-link {
+	color: #2271b1;
+	text-decoration: none;
+}
+
+.ereader-review-link:hover {
+	color: #135e96;
+	text-decoration: underline;
+}
