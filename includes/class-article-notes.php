@@ -963,6 +963,12 @@ class Article_Notes {
 			'index.php?ereader_review_page=1&ereader_article_id=$matches[1]',
 			'top'
 		);
+
+		// Flush rewrite rules once after adding the review page.
+		if ( get_option( 'ereader_review_page_rules_version' ) !== '1.0' ) {
+			flush_rewrite_rules();
+			update_option( 'ereader_review_page_rules_version', '1.0' );
+		}
 	}
 
 	/**
