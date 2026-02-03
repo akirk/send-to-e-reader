@@ -19,6 +19,7 @@ class Article_Notes {
 	const NOTE_ID_META = 'ereader_note_id';
 	const RATING_META = 'ereader_rating';
 	const STATUS_META = 'ereader_status';
+	const INLINE_NOTES_META = 'ereader_inline_notes';
 
 	const STATUS_REVISIT = 'revisit';
 	const STATUS_READ = 'read';
@@ -553,11 +554,12 @@ class Article_Notes {
 		}
 
 		return array(
-			'id'      => $note_post->ID,
-			'status'  => get_post_meta( $note_post->ID, self::STATUS_META, true ) ?: self::STATUS_REVISIT,
-			'rating'  => (int) get_post_meta( $note_post->ID, self::RATING_META, true ),
-			'notes'   => $note_post->post_content,
-			'updated' => $note_post->post_modified,
+			'id'           => $note_post->ID,
+			'status'       => get_post_meta( $note_post->ID, self::STATUS_META, true ) ?: self::STATUS_REVISIT,
+			'rating'       => (int) get_post_meta( $note_post->ID, self::RATING_META, true ),
+			'notes'        => $note_post->post_content,
+			'inline_notes' => get_post_meta( $note_post->ID, self::INLINE_NOTES_META, true ) ?: '[]',
+			'updated'      => $note_post->post_modified,
 		);
 	}
 
@@ -570,7 +572,7 @@ class Article_Notes {
 	 * @param string $notes      Notes text.
 	 * @return int|false Note post ID on success, false on failure.
 	 */
-	public function save_note( $article_id, $status = null, $rating = null, $notes = null ) {
+	public function save_note( $article_id, $status = null, $rating = null, $notes = null, $inline_notes = null ) {
 		$existing_note_id = get_post_meta( $article_id, self::NOTE_ID_META, true );
 
 		$note_data = array(
@@ -605,6 +607,10 @@ class Article_Notes {
 		if ( null !== $rating ) {
 			$rating = max( 0, min( 5, (int) $rating ) );
 			update_post_meta( $note_id, self::RATING_META, $rating );
+		}
+
+		if ( null !== $inline_notes ) {
+			update_post_meta( $note_id, self::INLINE_NOTES_META, $inline_notes );
 		}
 
 		return $note_id;
@@ -666,8 +672,9 @@ class Article_Notes {
 		$status = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : null;
 		$rating = isset( $_POST['rating'] ) ? (int) $_POST['rating'] : null;
 		$notes = isset( $_POST['notes'] ) ? wp_kses_post( wp_unslash( $_POST['notes'] ) ) : null;
+		$inline_notes = isset( $_POST['inline_notes'] ) ? sanitize_text_field( wp_unslash( $_POST['inline_notes'] ) ) : null;
 
-		$note_id = $this->save_note( $article_id, $status, $rating, $notes );
+		$note_id = $this->save_note( $article_id, $status, $rating, $notes, $inline_notes );
 
 		if ( ! $note_id ) {
 			wp_send_json_error( __( 'Failed to save note.', 'send-to-e-reader' ) );
@@ -842,11 +849,44 @@ class Article_Notes {
 			$content .= '<p class="article-meta">' . $meta_line . '</p>' . PHP_EOL;
 			$content .= '<!-- /wp:paragraph -->';
 
-			// Notes.
+			// Inline notes (quote + comment pairs).
+			$inline_notes = array();
+			if ( ! empty( $note['inline_notes'] ) ) {
+				$inline_notes = json_decode( $note['inline_notes'], true );
+				if ( ! is_array( $inline_notes ) ) {
+					$inline_notes = array();
+				}
+			}
+
+			if ( ! empty( $inline_notes ) ) {
+				foreach ( $inline_notes as $inline_note ) {
+					if ( empty( $inline_note['quote'] ) ) {
+						continue;
+					}
+
+					// Quote block with the selected text.
+					$content .= '<!-- wp:quote -->' . PHP_EOL;
+					$content .= '<blockquote class="wp-block-quote"><p>' . esc_html( $inline_note['quote'] ) . '</p></blockquote>' . PHP_EOL;
+					$content .= '<!-- /wp:quote -->';
+
+					// Comment paragraph following the quote.
+					if ( ! empty( $inline_note['note'] ) ) {
+						$content .= '<!-- wp:paragraph -->' . PHP_EOL;
+						$content .= '<p>' . wp_kses_post( $inline_note['note'] ) . '</p>' . PHP_EOL;
+						$content .= '<!-- /wp:paragraph -->';
+					}
+				}
+			}
+
+			// Summary notes (general notes textarea).
 			if ( ! empty( $note['notes'] ) ) {
-				$content .= '<!-- wp:quote -->' . PHP_EOL;
-				$content .= '<blockquote class="wp-block-quote"><p>' . wp_kses_post( $note['notes'] ) . '</p></blockquote>' . PHP_EOL;
-				$content .= '<!-- /wp:quote -->';
+				$content .= '<!-- wp:separator -->' . PHP_EOL;
+				$content .= '<hr class="wp-block-separator"/>' . PHP_EOL;
+				$content .= '<!-- /wp:separator -->';
+
+				$content .= '<!-- wp:paragraph {"className":"summary-notes"} -->' . PHP_EOL;
+				$content .= '<p class="summary-notes"><strong>' . esc_html__( 'Summary:', 'send-to-e-reader' ) . '</strong> ' . wp_kses_post( $note['notes'] ) . '</p>' . PHP_EOL;
+				$content .= '<!-- /wp:paragraph -->';
 			}
 
 			$content .= '</div>' . PHP_EOL;
@@ -1045,6 +1085,7 @@ class Article_Notes {
 				'article_post'     => $article_post,
 				'article_content'  => $article_content,
 				'note'             => $note,
+				'inline_notes'     => $note ? $note['inline_notes'] : '[]',
 				'queue_count'      => count( $revisit_articles ),
 				'current_position' => $current_index + 1,
 				'prev_article'     => $prev_article,
@@ -1062,10 +1103,12 @@ class Article_Notes {
 	private function enqueue_review_page_assets() {
 		$version = SEND_TO_E_READER_VERSION;
 
+		wp_enqueue_style( 'dashicons' );
+
 		wp_enqueue_style(
 			'ereader-article-review',
 			plugins_url( 'assets/css/article-review.css', dirname( __FILE__ ) ),
-			array(),
+			array( 'dashicons' ),
 			$version
 		);
 
@@ -1081,16 +1124,20 @@ class Article_Notes {
 			'ereader-article-review',
 			'ereaderArticleReview',
 			array(
-				'ajaxurl'     => admin_url( 'admin-ajax.php' ),
-				'nonce'       => wp_create_nonce( 'ereader-article-notes' ),
-				'reviewUrl'   => home_url( '/article-review/' ),
+				'ajaxurl'      => admin_url( 'admin-ajax.php' ),
+				'nonce'        => wp_create_nonce( 'ereader-article-notes' ),
+				'reviewUrl'    => home_url( '/article-review/' ),
 				'dashboardUrl' => admin_url(),
-				'i18n'        => array(
-					'saving'  => __( 'Saving...', 'send-to-e-reader' ),
-					'saved'   => __( 'Saved', 'send-to-e-reader' ),
-					'error'   => __( 'Error saving', 'send-to-e-reader' ),
-					'loading' => __( 'Loading...', 'send-to-e-reader' ),
-					'confirmComplete' => __( 'Mark this article as reviewed and remove from queue?', 'send-to-e-reader' ),
+				'i18n'         => array(
+					'saving'       => __( 'Saving...', 'send-to-e-reader' ),
+					'saved'        => __( 'Saved', 'send-to-e-reader' ),
+					'error'        => __( 'Error saving', 'send-to-e-reader' ),
+					'loading'      => __( 'Loading...', 'send-to-e-reader' ),
+					'addNote'      => __( 'Add note', 'send-to-e-reader' ),
+					'yourThoughts' => __( 'Your thoughts on this passage...', 'send-to-e-reader' ),
+					'cancel'       => __( 'Cancel', 'send-to-e-reader' ),
+					'save'         => __( 'Save', 'send-to-e-reader' ),
+					'selectText'   => __( 'Select text in the article to add notes', 'send-to-e-reader' ),
 				),
 			)
 		);

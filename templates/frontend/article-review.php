@@ -3,6 +3,7 @@
  * Article Review Page Template - Deep Review Mode
  *
  * A focused interface for reviewing articles marked for revisit.
+ * Supports inline annotations by selecting text.
  *
  * @package Send_To_E_Reader
  */
@@ -18,6 +19,7 @@ $next_article    = isset( $args['next_article'] ) ? $args['next_article'] : null
 $nonce           = isset( $args['nonce'] ) ? $args['nonce'] : '';
 $statuses        = isset( $args['statuses'] ) ? $args['statuses'] : array();
 $review_url      = home_url( '/article-review/' );
+$inline_notes    = isset( $args['inline_notes'] ) ? $args['inline_notes'] : '[]';
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -90,6 +92,10 @@ $review_url      = home_url( '/article-review/' );
 								<?php esc_html_e( 'View original', 'send-to-e-reader' ); ?> ↗
 							</a>
 						</div>
+						<p class="ereader-selection-hint">
+							<span class="dashicons dashicons-edit"></span>
+							<?php esc_html_e( 'Select text to add notes', 'send-to-e-reader' ); ?>
+						</p>
 					</header>
 					<div class="ereader-article-body">
 						<?php echo wp_kses_post( $article_content ); ?>
@@ -99,16 +105,25 @@ $review_url      = home_url( '/article-review/' );
 				<aside class="ereader-review-sidebar">
 					<div class="ereader-sidebar-content">
 						<div class="ereader-sidebar-header">
-							<h2><?php esc_html_e( 'Notes', 'send-to-e-reader' ); ?></h2>
+							<h2><?php esc_html_e( 'Annotations', 'send-to-e-reader' ); ?></h2>
 							<div class="ereader-save-status"></div>
 						</div>
 
-						<div class="ereader-notes-section">
+						<input type="hidden" id="ereader-inline-notes-data" value="<?php echo esc_attr( $inline_notes ); ?>">
+
+						<div class="ereader-inline-notes-section">
+							<div class="ereader-inline-notes-list">
+								<p class="ereader-no-inline-notes"><?php esc_html_e( 'Select text in the article to add notes', 'send-to-e-reader' ); ?></p>
+							</div>
+						</div>
+
+						<div class="ereader-summary-section">
+							<label for="ereader-article-notes"><?php esc_html_e( 'Summary (optional)', 'send-to-e-reader' ); ?></label>
 							<textarea
 								id="ereader-article-notes"
 								class="ereader-notes-textarea"
-								placeholder="<?php esc_attr_e( 'Write your notes here...', 'send-to-e-reader' ); ?>"
-								rows="10"><?php echo esc_textarea( $note ? $note['notes'] : '' ); ?></textarea>
+								placeholder="<?php esc_attr_e( 'Overall thoughts...', 'send-to-e-reader' ); ?>"
+								rows="3"><?php echo esc_textarea( $note ? $note['notes'] : '' ); ?></textarea>
 						</div>
 
 						<div class="ereader-rating-section">
