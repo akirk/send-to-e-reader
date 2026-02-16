@@ -617,7 +617,7 @@ class Send_To_E_Reader {
 	 */
 	private function settings_header( $active ) {
 		$this->get_template_loader()->get_template_part(
-			'admin/settings-header',
+			'admin/ereader-settings-header',
 			null,
 			array(
 				'active' => $active,
@@ -657,7 +657,7 @@ class Send_To_E_Reader {
 			)
 		);
 
-		$this->get_template_loader()->get_template_part( 'admin/settings-footer' );
+		$this->get_template_loader()->get_template_part( 'admin/ereader-settings-footer' );
 	}
 
 	/**
@@ -725,7 +725,7 @@ class Send_To_E_Reader {
 			)
 		);
 
-		$this->get_template_loader()->get_template_part( 'admin/settings-footer' );
+		$this->get_template_loader()->get_template_part( 'admin/ereader-settings-footer' );
 	}
 
 	/**
