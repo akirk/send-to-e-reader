@@ -25,13 +25,6 @@ class Send_To_E_Reader {
 	 */
 	private $friends;
 
-	/**
-	 * Article Notes instance.
-	 *
-	 * @var Article_Notes
-	 */
-	private $article_notes;
-
 	const POST_META = 'sent-to-ereader';
 	const EREADERS_OPTION = 'send-to-e-reader_readers';
 	const DOWNLOAD_PASSWORD_OPTION = 'send_to_e_reader_download_password';
@@ -132,17 +125,8 @@ class Send_To_E_Reader {
 		$this->friends = $friends;
 		$this->maybe_migrate_options();
 		$this->register_hooks();
-		$this->article_notes = new Article_Notes( $this );
 	}
 
-	/**
-	 * Get the Article Notes instance.
-	 *
-	 * @return Article_Notes
-	 */
-	public function get_article_notes() {
-		return $this->article_notes;
-	}
 
 	/**
 	 * Migrate options from old "friends-" prefixed names to new names.
@@ -223,6 +207,10 @@ class Send_To_E_Reader {
 		add_filter( 'template_include', array( $this, 'download_via_url' ) );
 		add_action( 'admin_init', array( $this, 'admin_init' ) );
 
+		// Hook into post-collection article notes to identify sent articles.
+		add_filter( 'post_collection_article_queued_meta_query', array( $this, 'filter_article_queued_meta_query' ) );
+		add_filter( 'post_collection_article_queued_orderby_meta_key', array( $this, 'filter_article_queued_orderby_meta_key' ) );
+
 		// Friends-specific hooks - only register when Friends is available.
 		if ( $this->friends_is_available() ) {
 			add_filter( 'notify_new_friend_post', array( $this, 'post_notification' ), 10 );
@@ -240,6 +228,31 @@ class Send_To_E_Reader {
 			add_filter( 'friends_friend_posts_query_viewable', array( $this, 'enable_download_via_url' ) );
 		}
 	}
+
+	/**
+	 * Filter to add meta query for articles sent to e-reader.
+	 *
+	 * @param array $meta_query The existing meta query array.
+	 * @return array Modified meta query array.
+	 */
+	public function filter_article_queued_meta_query( $meta_query ) {
+		$meta_query[] = array(
+			'key'     => self::POST_META,
+			'compare' => 'EXISTS',
+		);
+		return $meta_query;
+	}
+
+	/**
+	 * Filter to specify the meta key for ordering queued articles.
+	 *
+	 * @param string $meta_key The existing meta key.
+	 * @return string The meta key to use for ordering.
+	 */
+	public function filter_article_queued_orderby_meta_key( $meta_key ) {
+		return self::POST_META;
+	}
+
 	public function admin_init() {
 		foreach ( get_post_types( array( 'show_ui' => true ) ) as $_post_type ) {
 			add_filter( 'bulk_actions-edit-' . $_post_type, array( $this, 'bulk_actions' ) );
