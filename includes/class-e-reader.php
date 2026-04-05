@@ -7,9 +7,9 @@
  * @package Send_To_E_Reader
  */
 
-defined( 'ABSPATH' ) || exit;
-
 namespace Send_To_E_Reader;
+
+defined( 'ABSPATH' ) || exit;
 
 /**
  * This is the abstract class for the sending posts to an E-Reader for the Friends Plugin.

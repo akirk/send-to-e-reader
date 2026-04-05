@@ -7,9 +7,9 @@
  * @package Send_To_E_Reader
  */
 
-defined( 'ABSPATH' ) || exit;
-
 namespace Send_To_E_Reader;
+
+defined( 'ABSPATH' ) || exit;
 
 /**
  * Class for managing article notes and reviews.
