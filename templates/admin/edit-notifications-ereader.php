@@ -1,3 +1,4 @@
+<?php defined( 'ABSPATH' ) || exit; ?>
 <tr>
 	<th scope="row"><?php esc_html_e( 'Send to new posts to E-Reader', 'send-to-e-reader' ); ?></th>
 	<td>

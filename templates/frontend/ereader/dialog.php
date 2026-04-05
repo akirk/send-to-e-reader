@@ -1,3 +1,4 @@
+<?php defined( 'ABSPATH' ) || exit; ?>
 <dialog id="friends-ereader-multi-prompt" role="dialog" aria-labelledby="prompt-dialog-heading" style="max-width: 50%">
 	<a class="btn btn-clear float-right close" aria-label="<?php esc_attr_e( 'Close', 'send-to-e-reader' ); ?>"></a>
 	<h5></h5>

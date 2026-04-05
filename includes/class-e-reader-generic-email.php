@@ -7,6 +7,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 namespace Send_To_E_Reader;
 
 /**
@@ -89,7 +91,7 @@ class E_Reader_Generic_Email extends E_Reader {
 		}
 
 		$this->send_email_with_attachment( $file );
-		unlink( $file );
+		wp_delete_file( $file );
 		return array( 'send-to-e-reader' => 'success', 'title' => $this->ebook_title, 'author' => $this->ebook_author );
 	}
 

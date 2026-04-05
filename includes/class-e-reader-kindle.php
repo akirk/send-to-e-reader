@@ -7,6 +7,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 namespace Send_To_E_Reader;
 
 /**
@@ -35,7 +37,7 @@ class E_Reader_Kindle extends E_Reader_Generic_Email {
 
 		$dir = rtrim( sys_get_temp_dir(), '/' ) . '/send_to_e_reader';
 		if ( ! file_exists( $dir ) ) {
-			mkdir( $dir );
+			wp_mkdir_p( $dir );
 		}
 
 		$filename = sanitize_title( $this->strip_emojis( $post->author_name . ' - ' . $post->post_title ) );

@@ -5,6 +5,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $notes = isset( $args['notes'] ) ? $args['notes'] : array();
 $total = isset( $args['total'] ) ? $args['total'] : 0;
 $paged = isset( $args['paged'] ) ? $args['paged'] : 1;
@@ -94,7 +96,7 @@ $base_url = admin_url( 'options-general.php?page=ereader-article-notes' );
 									<button type="button"
 										class="ereader-star <?php echo $i <= $note['rating'] ? 'active' : ''; ?>"
 										data-rating="<?php echo esc_attr( $i ); ?>"
-										title="<?php echo esc_attr( sprintf( __( '%d stars', 'send-to-e-reader' ), $i ) ); ?>">
+										title="<?php echo esc_attr( sprintf( /* translators: %d: number of stars */ __( '%d stars', 'send-to-e-reader' ), $i ) ); ?>">
 										<?php echo $i <= $note['rating'] ? '&#9733;' : '&#9734;'; ?>
 									</button>
 								<?php endfor; ?>

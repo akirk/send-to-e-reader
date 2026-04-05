@@ -7,6 +7,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 namespace Send_To_E_Reader;
 
 /**
@@ -180,7 +182,7 @@ abstract class E_Reader {
 
 		$dir = rtrim( sys_get_temp_dir(), '/' ) . '/send_to_e_reader';
 		if ( ! file_exists( $dir ) ) {
-			mkdir( $dir );
+			wp_mkdir_p( $dir );
 		}
 
 		foreach ( $posts as $post ) {
