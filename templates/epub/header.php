@@ -5,6 +5,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 echo '<', '?xml version="1.0" encoding="utf-8"?', '>', PHP_EOL;
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"

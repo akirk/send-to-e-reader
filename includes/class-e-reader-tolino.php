@@ -9,6 +9,8 @@
 
 namespace Send_To_E_Reader;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * This is the class for the sending posts to a Tolino E-Reader for the Friends Plugin.
  *

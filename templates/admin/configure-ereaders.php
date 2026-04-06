@@ -5,6 +5,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 
 ?>
@@ -63,7 +65,7 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 	<?php endif; ?>
 	<p class="description">
 		<?php
-		echo __( 'Some E-Readers offer wireless delivery via an e-mail address which you\'ll first need to create.', 'send-to-e-reader' );
+		echo esc_html__( 'Some E-Readers offer wireless delivery via an e-mail address which you\'ll first need to create.', 'send-to-e-reader' );
 		?>
 	</p>
 	<p class="description">

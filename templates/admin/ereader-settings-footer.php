@@ -5,5 +5,7 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 ?>
 </div>

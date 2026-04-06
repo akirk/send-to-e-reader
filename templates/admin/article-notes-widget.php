@@ -5,6 +5,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $pending_articles = isset( $args['pending_articles'] ) ? $args['pending_articles'] : array();
 $has_more_pending = isset( $args['has_more_pending'] ) ? $args['has_more_pending'] : false;
 $unread_articles = isset( $args['unread_articles'] ) ? $args['unread_articles'] : array();
@@ -73,7 +75,7 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 										<button type="button"
 											class="ereader-star <?php echo $i <= $article['rating'] ? 'active' : ''; ?>"
 											data-rating="<?php echo esc_attr( $i ); ?>"
-											title="<?php echo esc_attr( sprintf( __( '%d stars', 'send-to-e-reader' ), $i ) ); ?>">
+											title="<?php echo esc_attr( sprintf( /* translators: %d: number of stars */ __( '%d stars', 'send-to-e-reader' ), $i ) ); ?>">
 											<?php echo $i <= $article['rating'] ? '&#9733;' : '&#9734;'; ?>
 										</button>
 									<?php endfor; ?>
@@ -142,7 +144,7 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 										<button type="button"
 											class="ereader-star <?php echo $i <= $article['rating'] ? 'active' : ''; ?>"
 											data-rating="<?php echo esc_attr( $i ); ?>"
-											title="<?php echo esc_attr( sprintf( __( '%d stars', 'send-to-e-reader' ), $i ) ); ?>">
+											title="<?php echo esc_attr( sprintf( /* translators: %d: number of stars */ __( '%d stars', 'send-to-e-reader' ), $i ) ); ?>">
 											<?php echo $i <= $article['rating'] ? '&#9733;' : '&#9734;'; ?>
 										</button>
 									<?php endfor; ?>
@@ -192,7 +194,7 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 								<span class="ereader-article-meta">
 									<?php echo esc_html( $article['author'] ); ?>
 									<?php if ( $article['rating'] > 0 ) : ?>
-										&bull; <?php echo str_repeat( '&#9733;', $article['rating'] ); ?>
+										&bull; <?php echo esc_html( str_repeat( '★', $article['rating'] ) ); ?>
 									<?php endif; ?>
 								</span>
 							</div>
@@ -214,7 +216,7 @@ $statuses = \Send_To_E_Reader\Article_Notes::get_statuses();
 										<button type="button"
 											class="ereader-star <?php echo $i <= $article['rating'] ? 'active' : ''; ?>"
 											data-rating="<?php echo esc_attr( $i ); ?>"
-											title="<?php echo esc_attr( sprintf( __( '%d stars', 'send-to-e-reader' ), $i ) ); ?>">
+											title="<?php echo esc_attr( sprintf( /* translators: %d: number of stars */ __( '%d stars', 'send-to-e-reader' ), $i ) ); ?>">
 											<?php echo $i <= $article['rating'] ? '&#9733;' : '&#9734;'; ?>
 										</button>
 									<?php endfor; ?>

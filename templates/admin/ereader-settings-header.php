@@ -5,6 +5,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 ?>
 <div class="wrap">
 	<h1><?php echo esc_html( $args['title'] ); ?></h1>

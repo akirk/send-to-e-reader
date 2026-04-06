@@ -5,6 +5,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 ?>
 <form method="post">
 	<?php wp_nonce_field( $args['nonce_value'] ); ?>

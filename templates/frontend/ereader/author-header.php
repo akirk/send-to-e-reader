@@ -5,6 +5,8 @@
  * @package Send_To_E_Reader
  */
 
+defined( 'ABSPATH' ) || exit;
+
 if ( count( $args['unsent_posts'] ) ) {
 	foreach ( $args['ereaders'] as $id => $ereader ) {
 		?><a class="chip friends-send-new-posts-to-ereader" data-ereader="<?php echo esc_attr( $id ); ?>" data-unsent="<?php echo esc_attr( count( $args['unsent_posts'] ) ); ?>" href="#">
