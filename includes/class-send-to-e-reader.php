@@ -295,8 +295,20 @@ class Send_To_E_Reader {
 					$this->ereaders = null;
 					$alloptions = wp_load_alloptions();
 					if ( isset( $alloptions[ self::EREADERS_OPTION ] ) ) {
-						$alloptions[ self::EREADERS_OPTION ] = str_replace( 'Friends_', 'Friends\\', $alloptions[ self::EREADERS_OPTION ] );
-						$this->update_ereaders( unserialize( $alloptions[ self::EREADERS_OPTION ] ) );
+						$serialized = $alloptions[ self::EREADERS_OPTION ];
+						// Migrate from Friends_ prefix (old non-namespaced format).
+						$serialized = str_replace( 'Friends_', 'Friends\\', $serialized );
+						// Migrate from Friends\ namespace to Send_To_E_Reader\ namespace.
+						// We need to fix the serialized string length when the namespace changes.
+						$serialized = preg_replace_callback(
+							'/O:(\d+):"Friends\\\\(E_Reader[^"]*)"/',
+							function ( $matches ) {
+								$class_name = 'Send_To_E_Reader\\' . $matches[2];
+								return 'O:' . strlen( $class_name ) . ':"' . $class_name . '"';
+							},
+							$serialized
+						);
+						$this->update_ereaders( unserialize( $serialized ) );
 						return $this->get_ereaders();
 					}
 				}
