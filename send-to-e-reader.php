@@ -8,6 +8,9 @@
  *
  * Description: Send posts to your e-reader. Works standalone or integrates with the Friends plugin.
  *
+ * Requires at least: 6.0
+ * Tested up to: 6.9
+ * Requires PHP: 7.4
  * License: GPL2
  * Text Domain: send-to-e-reader
  *
