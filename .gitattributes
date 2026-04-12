@@ -1,11 +1,16 @@
 .circleci	export-ignore
 .git*	export-ignore
 .gitignore	export-ignore
+.claude	export-ignore
 .sass-cache	export-ignore
 bin	export-ignore
 comments.json	export-ignore
+composer.json	export-ignore
 composer.lock	export-ignore
 package-lock.json	export-ignore
 package.*	export-ignore
+phpunit.xml	export-ignore
+phpcs.xml	export-ignore
 sftp-config.json	export-ignore
 tests	export-ignore
+vendor	export-ignore

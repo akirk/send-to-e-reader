@@ -1,14 +1,15 @@
 # Send to E-Reader
 
-Send new articles directly to your e-reader via e-mail or download the ePub.
-
 Contributors: akirk
+Tags: e-reader, epub, kindle, pocketbook, email
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
 License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Stable tag: 1.1.0
+
+Send your posts to your e-reader device as an ePub file by email or download.
 
 ## Description
 

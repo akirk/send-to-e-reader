@@ -354,7 +354,7 @@ class Send_To_E_Reader {
 			$handle = 'send-to-e-reader';
 			$file = 'send-to-e-reader.js';
 			$version = SEND_TO_E_READER_VERSION;
-			wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ) );
+			wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ), true );
 			wp_localize_script(
 				$handle,
 				'send_to_ereader',
@@ -390,7 +390,7 @@ class Send_To_E_Reader {
 		$handle = 'send-to-e-reader';
 		$file = 'send-to-e-reader.js';
 		$version = SEND_TO_E_READER_VERSION;
-		wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends-admin' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ) );
+		wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends-admin' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ), true );
 	}
 
 	public function admin_menu() {
@@ -462,17 +462,22 @@ class Send_To_E_Reader {
 	}
 
 	public function notification_manager_after_form_submit( $friend_ids ) {
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'friends-notification-manager' ) ) {
+			return;
+		}
+
 		$ereaders = $this->get_ereaders();
 		if ( empty( $ereaders ) ) {
 			return;
 		}
 
+		$posted_ereader_settings = isset( $_POST['send-to-e-reader'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['send-to-e-reader'] ) ) : array();
 		foreach ( $friend_ids as $friend_id ) {
-			if ( ! isset( $_POST['send-to-e-reader'][ $friend_id ] ) ) {
+			if ( ! isset( $posted_ereader_settings[ $friend_id ] ) ) {
 				continue;
 			}
 
-			$ereader_notification = $_POST['send-to-e-reader'][ $friend_id ];
+			$ereader_notification = $posted_ereader_settings[ $friend_id ];
 			if ( $this->get_user_ereader_option( $friend_id ) !== $ereader_notification ) {
 				update_user_option( $friend_id, self::USER_OPTION, $ereader_notification );
 			}
@@ -582,22 +587,27 @@ class Send_To_E_Reader {
 
 	function ajax_unmark() {
 		check_ajax_referer( 'send-post-to-e-reader' );
-		delete_post_meta( $_POST['id'], self::POST_META );
+		if ( ! isset( $_POST['id'] ) ) {
+			wp_send_json_error();
+			return;
+		}
+		delete_post_meta( intval( wp_unslash( $_POST['id'] ) ), self::POST_META );
 		wp_send_json_success();
 	}
 
 	function ajax_send() {
 		check_ajax_referer( 'send-post-to-e-reader' );
 
+		$ereader_id = isset( $_POST['ereader'] ) ? sanitize_text_field( wp_unslash( $_POST['ereader'] ) ) : '';
 		$ereaders = $this->get_ereaders();
-		if ( ! isset( $ereaders[ $_POST['ereader'] ] ) ) {
+		if ( ! isset( $ereaders[ $ereader_id ] ) ) {
 			wp_send_json_error( __( 'E-Reader not configured', 'send-to-e-reader' ) );
 			exit;
 		}
 		$posts = array();
 		if ( ! empty( $_POST['unsent'] ) && ! empty( $_POST['query_vars'] ) && ! empty( $_POST['qv_sign'] ) ) {
-			$query_vars = wp_unslash( $_POST['query_vars'] );
-			if ( sha1( wp_salt( 'nonce' ) . $query_vars ) !== $_POST['qv_sign'] ) {
+			$query_vars = wp_unslash( $_POST['query_vars'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated via signature below.
+			if ( sha1( wp_salt( 'nonce' ) . $query_vars ) !== sanitize_text_field( wp_unslash( $_POST['qv_sign'] ) ) ) {
 				wp_send_json_error();
 				exit;
 			}
@@ -607,7 +617,7 @@ class Send_To_E_Reader {
 		}
 
 		if ( ! empty( $_POST['ids'] ) ) {
-			$posts = array_merge( $posts, array_map( 'get_post', (array) $_POST['ids'] ) );
+			$posts = array_merge( $posts, array_map( 'get_post', array_map( 'intval', (array) wp_unslash( $_POST['ids'] ) ) ) );
 		}
 
 		if ( empty( $posts ) ) {
@@ -615,7 +625,7 @@ class Send_To_E_Reader {
 			exit;
 		}
 
-		$ereader = $ereaders[ $_POST['ereader'] ];
+		$ereader = $ereaders[ $ereader_id ];
 		$result = $ereader->send_posts(
 			$posts,
 			empty( $_POST['title'] ) ? false : sanitize_text_field( wp_unslash( $_POST['title'] ) ),
@@ -632,7 +642,7 @@ class Send_To_E_Reader {
 		}
 
 		if ( $result instanceof E_Reader ) {
-			$this->update_ereader( $_POST['ereader'], $result );
+			$this->update_ereader( $ereader_id, $result );
 		}
 		wp_send_json_success( $result );
 	}
@@ -663,8 +673,9 @@ class Send_To_E_Reader {
 	public function settings() {
 		$nonce_value = 'send-to-e-reader';
 
-		if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( $_POST['_wpnonce'], $nonce_value ) ) {
-			update_option( self::DOWNLOAD_PASSWORD_OPTION, sanitize_text_field( wp_unslash( $_POST['download_password'] ) ) );
+		if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), $nonce_value ) ) {
+			$download_password = isset( $_POST['download_password'] ) ? sanitize_text_field( wp_unslash( $_POST['download_password'] ) ) : '';
+			update_option( self::DOWNLOAD_PASSWORD_OPTION, $download_password );
 		}
 
 		$this->settings_header( 'send-to-e-reader-settings' );
@@ -697,9 +708,10 @@ class Send_To_E_Reader {
 
 		$friends = $this->friends_is_available() ? \Friends\Friends::get_instance() : null;
 		$nonce_value = 'send-to-e-reader';
-		if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( $_POST['_wpnonce'], $nonce_value ) ) {
+		if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), $nonce_value ) ) {
 			$delete_ereaders = $ereaders;
-			foreach ( $_POST['ereaders'] as $id => $ereader_data ) {
+			$posted_ereaders = isset( $_POST['ereaders'] ) ? wp_unslash( $_POST['ereaders'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- individual fields sanitized below.
+			foreach ( $posted_ereaders as $id => $ereader_data ) {
 				if ( ! isset( $ereader_data['class'] ) ) {
 					continue;
 				}
@@ -709,8 +721,8 @@ class Send_To_E_Reader {
 					continue;
 				}
 
-				if ( 'new' === $id && isset( $_POST['ereaders'][ 'new' . $class ] ) ) {
-					$ereader_data = array_merge( $ereader_data, $_POST['ereaders'][ 'new' . $class ] );
+				if ( 'new' === $id && isset( $posted_ereaders[ 'new' . $class ] ) ) {
+					$ereader_data = array_merge( $ereader_data, $posted_ereaders[ 'new' . $class ] );
 				}
 
 				$ereader = $class::instantiate_from_field_data( $id, $ereader_data );
@@ -806,9 +818,13 @@ class Send_To_E_Reader {
 	 * @param      \Friends\User $friend  The friend.
 	 */
 	function edit_friend_notifications_submit( \Friends\User $friend ) {
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'friends-edit-notifications_' . $friend->user_login ) ) {
+			return;
+		}
 		$ereaders = get_option( self::EREADERS_OPTION, array() );
-		if ( isset( $_POST['send-to-e-reader'] ) && isset( $ereaders[ $_POST['send-to-e-reader'] ] ) ) {
-			update_user_option( $friend->ID, self::USER_OPTION, $_POST['send-to-e-reader'] );
+		$ereader_id = isset( $_POST['send-to-e-reader'] ) ? sanitize_text_field( wp_unslash( $_POST['send-to-e-reader'] ) ) : '';
+		if ( $ereader_id && isset( $ereaders[ $ereader_id ] ) ) {
+			update_user_option( $friend->ID, self::USER_OPTION, $ereader_id );
 		} else {
 			delete_user_option( $friend->ID, self::USER_OPTION );
 		}
@@ -849,25 +865,27 @@ class Send_To_E_Reader {
 
 	public function enable_download_via_url( $viewable ) {
 		$ereader_url_var = 'epub' . get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) );
-		if ( ! isset( $_GET[ $ereader_url_var ] ) ) {
+		if ( ! isset( $_GET[ $ereader_url_var ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public download URL with password in parameter name.
 			return $viewable;
 		}
+		$request_value = wp_unslash( $_GET[ $ereader_url_var ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated via allowlist below.
 		if (
-			! is_array( $_GET[ $ereader_url_var ] )
+			! is_array( $request_value )
 			&& ! in_array(
-				$_GET[ $ereader_url_var ],
+				$request_value,
 				array(
 					'new',
 					'all',
 					'last',
 					'list',
-				)
+				),
+				true
 			)
 		) {
 			return $viewable;
 		}
 
-		$this->download_request = $_GET[ $ereader_url_var ];
+		$this->download_request = $request_value;
 		return true;
 	}
 
@@ -996,7 +1014,7 @@ class Send_To_E_Reader {
 			update_post_meta( $post->ID, self::POST_META, time() );
 		}
 
-		wp_redirect( $result['url'] );
+		wp_safe_redirect( $result['url'] );
 		exit;
 	}
 
@@ -1053,14 +1071,14 @@ class Send_To_E_Reader {
 	}
 
 	public function admin_notices() {
-		if ( ! empty( $_GET['send-to-e-reader'] ) ) {
-			if ( 'success' === $_GET['send-to-e-reader'] ) {
+		if ( ! empty( $_GET['send-to-e-reader'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only notice based on redirect parameter.
+			if ( 'success' === $_GET['send-to-e-reader'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				?>
 				<div class="notice notice-success is-dismissible">
 					<p><?php esc_html_e( 'Posts sent to E-Reader.', 'send-to-e-reader' ); ?></p>
 				</div>
 				<?php
-			} elseif ( 'no-ereader' === $_GET['send-to-e-reader'] ) {
+			} elseif ( 'no-ereader' === $_GET['send-to-e-reader'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				?>
 				<div class="notice notice-error is-dismissible">
 					<p><?php
