@@ -229,6 +229,7 @@ class Send_To_E_Reader {
 			add_action( 'friends_author_header', array( $this, 'friends_author_header' ), 10, 2 );
 			add_filter( 'friends_friend_posts_query_viewable', array( $this, 'enable_download_via_url' ) );
 		}
+		add_action( 'template_redirect', array( $this, 'standalone_download_via_url' ) );
 	}
 
 	/**
@@ -1016,6 +1017,26 @@ class Send_To_E_Reader {
 
 		wp_safe_redirect( $result['url'] );
 		exit;
+	}
+
+	/**
+	 * Handle download via URL in standalone mode (without Friends plugin).
+	 */
+	public function standalone_download_via_url() {
+		if ( ! $this->enable_download_via_url( false ) ) {
+			return;
+		}
+
+		// Override query vars to include Friends/Post Collection post types.
+		global $wp_query;
+		$author = get_query_var( 'author' );
+		if ( $author ) {
+			$wp_query->query_vars['post_type'] = array( 'post', 'friend_post_cache', 'post_collection' );
+			$wp_query->query_vars['post_status'] = array( 'publish', 'private' );
+			$wp_query->query_vars['author'] = $author;
+		}
+
+		$this->download_via_url( '' );
 	}
 
 	public function bulk_actions( $actions ) {
