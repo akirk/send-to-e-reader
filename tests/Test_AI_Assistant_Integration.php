@@ -84,7 +84,7 @@ class Test_AI_Assistant_Integration extends TestCase {
 		unlink( $path );
 
 		$this->assertStringContainsString( 'Make the homepage hero headline shorter.', $chapter );
-		$this->assertStringContainsString( 'Try &quot;Build faster with WordPress&quot; as the headline.', $chapter );
+		$this->assertStringContainsString( 'Try "Build faster with WordPress" as the headline.', $chapter );
 		$this->assertStringContainsString( 'Test User | Wednesday, May 13, 2026', $chapter );
 		$this->assertStringContainsString( 'This conversation contains 2 messages and was created with openai using gpt-4o.', $chapter );
 		$this->assertStringContainsString( '<h3>Test User</h3>', $chapter );
@@ -99,5 +99,58 @@ class Test_AI_Assistant_Integration extends TestCase {
 		$this->assertStringNotContainsString( '<h3>User</h3>', $chapter );
 		$this->assertStringNotContainsString( 'User 1', $chapter );
 		$this->assertStringNotContainsString( 'Assistant 2', $chapter );
+	}
+
+	/**
+	 * Test that prepared AI Assistant message HTML is used for EPUB output.
+	 */
+	public function test_exports_prepared_message_html_to_epub() {
+		$format = AI_Assistant_Integration::register_export_formats( array() )['epub'];
+
+		$result = AI_Assistant_Integration::export_conversation_epub(
+			array(
+				'id'                 => 456,
+				'title'              => 'Formatted answer',
+				'message_count'      => 2,
+				'created'            => '2026-05-13 10:00:00',
+				'author_id'          => 1,
+				'include_tool_calls' => false,
+				'messages'           => array(
+					array(
+						'role'    => 'user',
+						'content' => 'Raw user fallback should not be used.',
+						'html'    => '<p>Make the <strong>homepage</strong> hero headline shorter.</p>',
+					),
+					array(
+						'role'    => 'assistant',
+						'content' => 'Raw assistant fallback should not be used.',
+						'html'    => '<p>Try <code>Build faster</code> as the headline.</p>'
+							. '<ul><li>Keep it punchy.</li></ul><script>alert("nope")</script>',
+					),
+				),
+			),
+			$format
+		);
+
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive is required to inspect the generated ePub.' );
+		}
+
+		$path = tempnam( sys_get_temp_dir(), 'ai-assistant-html-epub-' );
+		file_put_contents( $path, $result['content'] );
+
+		$zip = new ZipArchive();
+		$this->assertTrue( $zip->open( $path ) );
+		$chapter = $zip->getFromName( 'OEBPS/conversation.html' );
+		$zip->close();
+		unlink( $path );
+
+		$this->assertStringContainsString( '<strong>homepage</strong>', $chapter );
+		$this->assertStringContainsString( '<code>Build faster</code>', $chapter );
+		$this->assertStringContainsString( '<li>Keep it punchy.</li>', $chapter );
+		$this->assertStringNotContainsString( 'Raw user fallback should not be used.', $chapter );
+		$this->assertStringNotContainsString( 'Raw assistant fallback should not be used.', $chapter );
+		$this->assertStringNotContainsString( '<script>', $chapter );
+		$this->assertStringNotContainsString( 'alert("nope")', $chapter );
 	}
 }

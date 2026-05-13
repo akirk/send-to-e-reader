@@ -115,7 +115,7 @@ class AI_Assistant_Integration {
 			}
 
 			$role    = self::get_message_role( $message );
-			$content = self::message_to_plain_text( $message, $include_tool_calls );
+			$content = self::message_to_xhtml( $message, $include_tool_calls );
 			if ( '' === $content && ! $include_tool_calls ) {
 				continue;
 			}
@@ -124,7 +124,7 @@ class AI_Assistant_Integration {
 
 			$body .= '<div class="message message-' . self::html_class( $role ) . '">' . PHP_EOL;
 			$body .= '<h3>' . self::escape_xml( $message_title ) . '</h3>' . PHP_EOL;
-			$body .= self::plain_text_to_xhtml( $content ? $content : __( 'No text content', 'send-to-e-reader' ) );
+			$body .= $content ? $content : self::plain_text_to_xhtml( __( 'No text content', 'send-to-e-reader' ) );
 			$body .= '</div>' . PHP_EOL;
 			++$rendered_messages;
 		}
@@ -228,6 +228,210 @@ class AI_Assistant_Integration {
 		}
 
 		return trim( implode( "\n\n", $parts ) );
+	}
+
+	/**
+	 * Convert a message to XHTML, preferring AI Assistant's prepared HTML.
+	 *
+	 * @param array $message            Message data.
+	 * @param bool  $include_tool_calls Whether tool calls should be included.
+	 * @return string
+	 */
+	private static function message_to_xhtml( array $message, $include_tool_calls = false ) {
+		if ( isset( $message['html'] ) && is_string( $message['html'] ) && '' !== trim( $message['html'] ) ) {
+			$html = self::prepared_html_to_xhtml( $message['html'] );
+			if ( '' !== trim( $html ) ) {
+				return $html;
+			}
+		}
+
+		$content = self::message_to_plain_text( $message, $include_tool_calls );
+		if ( '' === $content ) {
+			return '';
+		}
+
+		return self::plain_text_to_xhtml( $content );
+	}
+
+	/**
+	 * Normalize AI Assistant's prepared HTML fragment for inclusion in an EPUB.
+	 *
+	 * @param string $html Prepared message HTML.
+	 * @return string
+	 */
+	private static function prepared_html_to_xhtml( $html ) {
+		$html = trim( self::strip_file_context_from_html( self::sanitize_xml_text( $html ) ) );
+		if ( '' === $html ) {
+			return '';
+		}
+
+		$html = wp_kses_post( self::strip_unsafe_html_blocks( $html ) );
+		$html = trim( $html );
+		if ( '' === $html ) {
+			return '';
+		}
+
+		if ( false === strpos( $html, '<' ) || ! class_exists( '\DOMDocument' ) ) {
+			return self::plain_text_to_xhtml( html_entity_decode( $html, ENT_QUOTES, 'UTF-8' ) );
+		}
+
+		$document = new \DOMDocument( '1.0', 'UTF-8' );
+		$previous = libxml_use_internal_errors( true );
+		$document_html = '<!DOCTYPE html><html><head>'
+			. '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />'
+			. '</head><body>' . $html . '</body></html>';
+		$loaded        = $document->loadHTML( $document_html );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous );
+
+		if ( ! $loaded ) {
+			return self::plain_text_to_xhtml( html_entity_decode( strip_tags( $html ), ENT_QUOTES, 'UTF-8' ) );
+		}
+
+		$body = $document->getElementsByTagName( 'body' )->item( 0 );
+		if ( ! $body ) {
+			return '';
+		}
+
+		self::remove_unsafe_html_nodes( $body );
+
+		$fragment = '';
+		foreach ( $body->childNodes as $child ) {
+			$node = $document->saveXML( $child );
+			if ( false !== $node ) {
+				$fragment .= $node;
+			}
+		}
+
+		$fragment = trim( self::sanitize_xml_text( $fragment ) );
+		if ( '' !== $fragment && false === strpos( $fragment, '<' ) ) {
+			return self::plain_text_to_xhtml( html_entity_decode( $fragment, ENT_QUOTES, 'UTF-8' ) );
+		}
+
+		return $fragment;
+	}
+
+	/**
+	 * Remove hidden AI Assistant file context from prepared HTML.
+	 *
+	 * @param string $html Prepared message HTML.
+	 * @return string
+	 */
+	private static function strip_file_context_from_html( $html ) {
+		$html = preg_replace(
+			'/\s*<ai_assistant_file_context\b[^>]*>.*?<\/ai_assistant_file_context>\s*/is',
+			'',
+			(string) $html
+		);
+		$html = preg_replace(
+			'/\s*&lt;ai_assistant_file_context&gt;.*?&lt;\/ai_assistant_file_context&gt;\s*/is',
+			'',
+			$html
+		);
+
+		return $html;
+	}
+
+	/**
+	 * Remove HTML elements whose contents should not become readable text.
+	 *
+	 * @param string $html Prepared message HTML.
+	 * @return string
+	 */
+	private static function strip_unsafe_html_blocks( $html ) {
+		$html = preg_replace(
+			'/<\s*(script|style|iframe|object|embed|form|button|select|textarea)\b[^>]*>.*?<\s*\/\s*\1\s*>/is',
+			'',
+			(string) $html
+		);
+		$html = preg_replace(
+			'/<\s*(input|link|meta|option)\b[^>]*\/?\s*>/is',
+			'',
+			$html
+		);
+
+		return $html;
+	}
+
+	/**
+	 * Remove unsafe elements and attributes after DOM normalization.
+	 *
+	 * @param \DOMNode $node DOM node.
+	 */
+	private static function remove_unsafe_html_nodes( \DOMNode $node ) {
+		$blocked_elements = array(
+			'button'   => true,
+			'embed'    => true,
+			'form'     => true,
+			'iframe'   => true,
+			'input'    => true,
+			'link'     => true,
+			'meta'     => true,
+			'object'   => true,
+			'option'   => true,
+			'script'   => true,
+			'select'   => true,
+			'style'    => true,
+			'textarea' => true,
+		);
+
+		for ( $i = $node->childNodes->length - 1; $i >= 0; --$i ) {
+			$child = $node->childNodes->item( $i );
+			if ( $child instanceof \DOMElement && isset( $blocked_elements[ strtolower( $child->tagName ) ] ) ) {
+				$node->removeChild( $child );
+				continue;
+			}
+
+			self::remove_unsafe_html_nodes( $child );
+		}
+
+		if ( ! ( $node instanceof \DOMElement ) || ! $node->hasAttributes() ) {
+			return;
+		}
+
+		$remove = array();
+		foreach ( $node->attributes as $attribute ) {
+			$name = strtolower( $attribute->nodeName );
+			if ( 0 === strpos( $name, 'on' ) || 'style' === $name || 'srcdoc' === $name || 'srcset' === $name ) {
+				$remove[] = $attribute->nodeName;
+				continue;
+			}
+
+			if (
+				in_array( $name, array( 'href', 'src', 'cite' ), true ) &&
+				! self::is_safe_url_attribute( $attribute->nodeValue )
+			) {
+				$remove[] = $attribute->nodeName;
+			}
+		}
+
+		foreach ( $remove as $attribute_name ) {
+			$node->removeAttribute( $attribute_name );
+		}
+	}
+
+	/**
+	 * Determine whether a URL-valued HTML attribute is safe for EPUB output.
+	 *
+	 * @param string $value Attribute value.
+	 * @return bool
+	 */
+	private static function is_safe_url_attribute( $value ) {
+		$value = trim( html_entity_decode( (string) $value, ENT_QUOTES, 'UTF-8' ) );
+		if ( '' === $value || '#' === $value[0] || '/' === $value[0] ) {
+			return true;
+		}
+
+		if ( 0 === strpos( $value, './' ) || 0 === strpos( $value, '../' ) ) {
+			return true;
+		}
+
+		$scheme = parse_url( $value, PHP_URL_SCHEME );
+		if ( ! $scheme ) {
+			return true;
+		}
+
+		return in_array( strtolower( $scheme ), array( 'http', 'https', 'mailto', 'tel' ), true );
 	}
 
 	/**
@@ -524,8 +728,16 @@ class AI_Assistant_Integration {
 	 * @return string
 	 */
 	private static function escape_xml( $text ) {
-		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', (string) $text );
+		return htmlspecialchars( self::sanitize_xml_text( $text ), ENT_QUOTES | ENT_SUBSTITUTE | ENT_XML1, 'UTF-8' );
+	}
 
-		return htmlspecialchars( $text, ENT_QUOTES | ENT_SUBSTITUTE | ENT_XML1, 'UTF-8' );
+	/**
+	 * Remove characters that are invalid in XML.
+	 *
+	 * @param string $text Text.
+	 * @return string
+	 */
+	private static function sanitize_xml_text( $text ) {
+		return preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', (string) $text );
 	}
 }
