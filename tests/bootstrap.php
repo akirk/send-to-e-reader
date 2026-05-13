@@ -353,6 +353,14 @@ namespace {
 		}
 	}
 
+	$GLOBALS['wpdb'] = new class {
+		public $postmeta = 'wp_postmeta';
+
+		public function update( $table, $data, $where, $format = null, $where_format = null ) {
+			return true;
+		}
+	};
+
 	function get_post( $post = null ) {
 		if ( $post instanceof WP_Post ) {
 			return $post;

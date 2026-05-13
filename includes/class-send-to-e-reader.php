@@ -227,7 +227,7 @@ class Send_To_E_Reader {
 			add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
 			add_action( 'wp_footer', array( $this, 'print_dialog' ) );
 			add_action( 'friends_author_header', array( $this, 'friends_author_header' ), 10, 2 );
-			add_filter( 'friends_friend_posts_query_viewable', array( $this, 'enable_download_via_url' ) );
+			add_filter( 'friends_friend_posts_query_viewable', array( $this, 'enable_passworded_download_via_url' ) );
 		}
 		add_action( 'template_redirect', array( $this, 'standalone_download_via_url' ) );
 	}
@@ -866,27 +866,44 @@ class Send_To_E_Reader {
 
 	public function enable_download_via_url( $viewable ) {
 		$ereader_url_var = 'epub' . get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) );
-		if ( ! isset( $_GET[ $ereader_url_var ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public download URL with password in parameter name.
-			return $viewable;
+		if ( isset( $_GET[ $ereader_url_var ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public download URL with password in parameter name.
+			$request_value = wp_unslash( $_GET[ $ereader_url_var ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated via allowlist below.
+			if (
+				! is_array( $request_value )
+				&& in_array(
+					$request_value,
+					array(
+						'new',
+						'all',
+						'last',
+						'list',
+					),
+					true
+				)
+			) {
+				$this->download_request = $request_value;
+				return true;
+			}
 		}
-		$request_value = wp_unslash( $_GET[ $ereader_url_var ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated via allowlist below.
-		if (
-			! is_array( $request_value )
-			&& ! in_array(
-				$request_value,
-				array(
-					'new',
-					'all',
-					'last',
-					'list',
-				),
-				true
-			)
-		) {
+
+		if ( ! isset( $_GET['epub'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public download URL.
 			return $viewable;
 		}
 
-		$this->download_request = $request_value;
+		$request_value = wp_unslash( $_GET['epub'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only presence of a scalar parameter is used.
+		if ( is_array( $request_value ) ) {
+			return $viewable;
+		}
+
+		$this->download_request = 'current';
+		return true;
+	}
+
+	public function enable_passworded_download_via_url( $viewable ) {
+		if ( ! $this->enable_download_via_url( false ) || 'current' === $this->download_request ) {
+			return $viewable;
+		}
+
 		return true;
 	}
 
@@ -940,7 +957,13 @@ class Send_To_E_Reader {
 		}
 
 		$ereader = new E_Reader_Download( $this->download_request );
-		if ( is_array( $this->download_request ) ) {
+		if ( 'current' === $this->download_request ) {
+			global $wp_query;
+			$posts = array();
+			if ( isset( $wp_query->posts ) && is_array( $wp_query->posts ) ) {
+				$posts = array_values( array_filter( array_map( 'get_post', $wp_query->posts ) ) );
+			}
+		} elseif ( is_array( $this->download_request ) ) {
 			$query = new \WP_Query(
 				array_merge(
 					$this->get_query_vars(),
