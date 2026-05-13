@@ -24,7 +24,7 @@ defined( 'ABSPATH' ) || exit;
 						<?php esc_html_e( 'Append ?epub to download the posts returned by the current page, or use one of these passworded URLs:', 'send-to-e-reader' ); ?>
 					</p>
 					<ul>
-						<li><span class="description"><?php esc_html_e( 'Current page:', 'send-to-e-reader' ); ?></span> <span class="download-preview"><tt class="friends-sample-url"></tt><tt>?epub</tt></span></li>
+						<li><span class="description"><?php esc_html_e( 'Current page (only logged-in):', 'send-to-e-reader' ); ?></span> <span class="download-preview"><tt class="friends-sample-url"></tt><tt>?epub</tt></span></li>
 						<?php
 						foreach (
 							array(
