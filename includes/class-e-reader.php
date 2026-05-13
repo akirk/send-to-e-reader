@@ -106,27 +106,7 @@ abstract class E_Reader {
 	 * @return     string  The text stripped off emojis.
 	 */
 	protected function strip_emojis( $text ) {
-		// Match Emoticons.
-		$regex_emoticons = '/[\x{1F600}-\x{1F64F}]/u';
-		$text = preg_replace( $regex_emoticons, '', $text );
-
-		// Match Miscellaneous Symbols and Pictographs.
-		$regex_symbols = '/[\x{1F300}-\x{1F5FF}]/u';
-		$text = preg_replace( $regex_symbols, '', $text );
-
-		// Match Transport And Map Symbols.
-		$regex_transport = '/[\x{1F680}-\x{1F6FF}]/u';
-		$text = preg_replace( $regex_transport, '', $text );
-
-		// Match Miscellaneous Symbols.
-		$regex_misc = '/[\x{2600}-\x{26FF}]/u';
-		$text = preg_replace( $regex_misc, '', $text );
-
-		// Match Dingbats.
-		$regex_dingbats = '/[\x{2700}-\x{27BF}]/u';
-		$text = preg_replace( $regex_dingbats, '', $text );
-
-		return $text;
+		return Epub_Builder::strip_emojis( $text );
 	}
 
 	protected function get_content( $format, \WP_Post $post ) {
@@ -177,13 +157,9 @@ abstract class E_Reader {
 
 	protected function generate_file( array $posts, $title = null, $author = null ) {
 		$authors = array();
+		$chapters = array();
 		$this->ebook_title = $title;
 		$this->ebook_author = $author;
-
-		$dir = rtrim( sys_get_temp_dir(), '/' ) . '/send_to_e_reader';
-		if ( ! file_exists( $dir ) ) {
-			wp_mkdir_p( $dir );
-		}
 
 		foreach ( $posts as $post ) {
 			if ( ! $this->ebook_title ) {
@@ -211,20 +187,9 @@ abstract class E_Reader {
 		$this->ebook_title = $this->strip_emojis( $this->ebook_title );
 		$this->ebook_author = $this->strip_emojis( $this->ebook_author );
 
-		$filename = sanitize_title( substr( $this->ebook_author, 0, 40 ) . ' - ' . substr( $this->ebook_title, 0, 100 ) );
 		$url = home_url( '?' . implode( '-', array_map( 'intval', array_column( $posts, 'ID' ) ) ) );
-		$book = new \PHPePub\Core\EPub();
-		$book->setGenerator( 'Send to E-Reader (Version ' . SEND_TO_E_READER_VERSION . ')' );
 
-		$book->setTitle( htmlspecialchars( $this->ebook_title ) );
-		$book->setIdentifier( $url, \PHPePub\Core\EPub::IDENTIFIER_URI );
-		$book->setAuthor( htmlspecialchars( $this->ebook_author ), htmlspecialchars( $this->ebook_author ) );
-
-		$book->setSourceURL( $url );
-
-		$book->addCSSFile( 'style.css', 'css', file_get_contents( self::get_template_loader()->get_template_part( 'epub/style', null, array(), false ) ) );
-
-		foreach ( $posts as $count => $post ) {
+		foreach ( $posts as $post ) {
 			$post_title = $post->post_title;
 			if ( empty( $post_title ) ) {
 				$post_title = get_the_excerpt( $post );
@@ -232,16 +197,21 @@ abstract class E_Reader {
 
 			$content = $this->get_content( 'epub', $post );
 
-			$book->addChapter( $post_title, sanitize_title( substr( $this->strip_emojis( $post->post_author ), 0, 40 ) . ' - ' . substr( $post_title, 0, 100 ) ) . '.html', $content, false, \PHPePub\Core\EPub::EXTERNAL_REF_ADD, $dir );
+			$chapters[] = array(
+				'title'    => $post_title,
+				'filename' => sanitize_title( substr( $this->strip_emojis( $post->post_author ), 0, 40 ) . ' - ' . substr( $post_title, 0, 100 ) ) . '.html',
+				'content'  => $content,
+			);
 		}
 
-		if ( count( $posts ) > 1 ) {
-			$book->buildTOC( null, 'toc', __( 'Table of Contents', 'send-to-e-reader' ), true, true );
-		}
-
-		$book->finalize();
-		$book->saveBook( $filename . '.epub', $dir );
-
-		return $dir . '/' . $filename . '.epub';
+		return Epub_Builder::build_file(
+			$this->ebook_title,
+			$this->ebook_author,
+			$chapters,
+			array(
+				'identifier' => $url,
+				'source_url' => $url,
+			)
+		);
 	}
 }

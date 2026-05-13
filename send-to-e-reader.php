@@ -26,10 +26,13 @@ define( 'SEND_TO_E_READER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SEND_TO_E_READER_VERSION', '1.1.0' );
 
 require 'libs/autoload.php';
+require_once __DIR__ . '/includes/class-epub-builder.php';
+require_once __DIR__ . '/includes/class-ai-assistant-integration.php';
 require_once __DIR__ . '/includes/class-send-to-e-reader.php';
 require_once __DIR__ . '/includes/class-e-reader.php';
 
 add_filter( 'send_to_e_reader', '__return_true' );
+Send_To_E_Reader\AI_Assistant_Integration::register_hooks();
 
 /**
  * Initialize the plugin with e-reader classes.

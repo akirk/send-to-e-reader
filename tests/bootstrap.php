@@ -89,12 +89,38 @@ namespace {
 	if ( ! defined( 'FRIENDS_SEND_TO_E_READER_VERSION' ) ) {
 		define( 'FRIENDS_SEND_TO_E_READER_VERSION', '0.8.4' );
 	}
+	if ( ! defined( 'SEND_TO_E_READER_PLUGIN_DIR' ) ) {
+		define( 'SEND_TO_E_READER_PLUGIN_DIR', FRIENDS_SEND_TO_E_READER_PLUGIN_DIR );
+	}
+	if ( ! defined( 'SEND_TO_E_READER_VERSION' ) ) {
+		define( 'SEND_TO_E_READER_VERSION', FRIENDS_SEND_TO_E_READER_VERSION );
+	}
 	if ( ! defined( 'ABSPATH' ) ) {
 		define( 'ABSPATH', '/tmp/' );
 	}
 
 	// Load Composer autoloader.
 	require_once dirname( __DIR__ ) . '/vendor/autoload.php';
+
+	if ( ! class_exists( 'RelativePath', false ) ) {
+		require_once dirname( __DIR__ ) . '/libs/grandt/relativepath/RelativePath.php';
+	}
+
+	// The checked-in vendor tree used by these tests can omit the runtime phpzip package.
+	spl_autoload_register(
+		function ( $class ) {
+			$prefix = 'PHPZip\\Zip\\';
+			if ( 0 !== strpos( $class, $prefix ) ) {
+				return;
+			}
+
+			$relative = str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) );
+			$file = dirname( __DIR__ ) . '/libs/phpzip/phpzip/src/Zip/' . $relative . '.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+			}
+		}
+	);
 
 	// Mock WordPress functions.
 	function __( $text, $domain = 'default' ) {
@@ -203,6 +229,18 @@ namespace {
 
 	function sanitize_text_field( $str ) {
 		return trim( strip_tags( $str ) );
+	}
+
+	function sanitize_file_name( $filename ) {
+		return preg_replace( '/[^A-Za-z0-9._-]/', '-', $filename );
+	}
+
+	function get_bloginfo( $show = '', $filter = 'raw' ) {
+		return 'Test Site';
+	}
+
+	function wp_json_encode( $data, $options = 0, $depth = 512 ) {
+		return json_encode( $data, $options, $depth );
 	}
 
 	function wp_unslash( $value ) {
@@ -361,6 +399,8 @@ namespace {
 	}
 
 	// Load the plugin files.
+	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-epub-builder.php';
+	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-ai-assistant-integration.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-send-to-e-reader.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-download.php';
