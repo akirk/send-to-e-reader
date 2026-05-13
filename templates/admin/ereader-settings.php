@@ -28,10 +28,10 @@ defined( 'ABSPATH' ) || exit;
 						<?php
 						foreach (
 							array(
-								'all'  => __( 'All posts from this friend:', 'send-to-e-reader' ),
-								'last' => __( 'The last 10 posts from this friend:', 'send-to-e-reader' ),
-								'new'  => __( 'Posts not yet sent from this friend:', 'send-to-e-reader' ),
-								'list' => __( 'List last for manual selection from this friend:', 'send-to-e-reader' ),
+								'all'  => __( 'All posts from this author:', 'send-to-e-reader' ),
+								'last' => __( 'The last 10 posts from this author:', 'send-to-e-reader' ),
+								'new'  => __( 'Posts not yet sent from this author:', 'send-to-e-reader' ),
+								'list' => __( 'List last for manual selection from this author:', 'send-to-e-reader' ),
 							) as $key => $description
 						) :
 							?>
@@ -40,7 +40,7 @@ defined( 'ABSPATH' ) || exit;
 					</ul>
 					<?php if ( ! empty( $args['all-friends'] ) && is_object( $args['all-friends'] ) ) : ?>
 					<p><select id="all-friends-preview">
-						<option value=""><?php esc_html_e( 'Preview URL for a friend', 'send-to-e-reader' ); ?></option>
+						<option value=""><?php esc_html_e( 'Preview URL for an author', 'send-to-e-reader' ); ?></option>
 						<?php foreach ( $args['all-friends']->get_results() as $friend ) : ?>
 						<option value="<?php echo esc_attr( $friend->get_local_friends_page_url() ); ?>"><?php echo esc_html( $friend->display_name ); ?></option>
 						<?php endforeach; ?>
