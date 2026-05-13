@@ -85,10 +85,27 @@ class Test_Send_To_E_Reader extends TestCase {
 	public function test_bare_epub_parameter_enables_current_query_download() {
 		$send_to_e_reader = new Send_To_E_Reader( null );
 		$_GET['epub'] = '';
+		$GLOBALS['is_user_logged_in'] = true;
 
 		try {
 			$this->assertTrue( $send_to_e_reader->enable_download_via_url( false ) );
 			$this->assertSame( 'current', $this->get_private_property( $send_to_e_reader, 'download_request' ) );
+		} finally {
+			unset( $_GET['epub'] );
+			unset( $GLOBALS['is_user_logged_in'] );
+		}
+	}
+
+	/**
+	 * Test that ?epub does not enable downloads for logged-out visitors.
+	 */
+	public function test_bare_epub_parameter_requires_logged_in_user() {
+		$send_to_e_reader = new Send_To_E_Reader( null );
+		$_GET['epub'] = '';
+
+		try {
+			$this->assertFalse( $send_to_e_reader->enable_download_via_url( false ) );
+			$this->assertFalse( $this->get_private_property( $send_to_e_reader, 'download_request' ) );
 		} finally {
 			unset( $_GET['epub'] );
 		}
@@ -116,12 +133,14 @@ class Test_Send_To_E_Reader extends TestCase {
 	public function test_bare_epub_parameter_does_not_enable_friends_query_viewability() {
 		$send_to_e_reader = new Send_To_E_Reader( null );
 		$_GET['epub'] = '';
+		$GLOBALS['is_user_logged_in'] = true;
 
 		try {
 			$this->assertFalse( $send_to_e_reader->enable_passworded_download_via_url( false ) );
 			$this->assertSame( 'current', $this->get_private_property( $send_to_e_reader, 'download_request' ) );
 		} finally {
 			unset( $_GET['epub'] );
+			unset( $GLOBALS['is_user_logged_in'] );
 		}
 	}
 

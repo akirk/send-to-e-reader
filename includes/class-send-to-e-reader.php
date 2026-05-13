@@ -890,6 +890,10 @@ class Send_To_E_Reader {
 			return $viewable;
 		}
 
+		if ( ! is_user_logged_in() ) {
+			return $viewable;
+		}
+
 		$request_value = wp_unslash( $_GET['epub'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only presence of a scalar parameter is used.
 		if ( is_array( $request_value ) ) {
 			return $viewable;
