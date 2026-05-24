@@ -99,6 +99,14 @@ namespace {
 		define( 'ABSPATH', '/tmp/' );
 	}
 
+	$GLOBALS['wpdb'] = new class {
+		public $postmeta = 'wp_postmeta';
+
+		public function update( $table, $data, $where ) {
+			return true;
+		}
+	};
+
 	// Load Composer autoloader.
 	require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
@@ -106,9 +114,48 @@ namespace {
 		require_once dirname( __DIR__ ) . '/libs/grandt/relativepath/RelativePath.php';
 	}
 
+	if ( ! class_exists( 'UUID', false ) ) {
+		require_once dirname( __DIR__ ) . '/libs/grandt/phpepub/src/lib.uuid.php';
+	}
+
+	spl_autoload_register(
+		function ( $class ) {
+			$classmap = array(
+				'com\\grandt\\BinString'       => dirname( __DIR__ ) . '/libs/grandt/binstring/BinString.php',
+				'com\\grandt\\BinStringStatic' => dirname( __DIR__ ) . '/libs/grandt/binstring/BinStringStatic.php',
+			);
+
+			if ( isset( $classmap[ $class ] ) && file_exists( $classmap[ $class ] ) ) {
+				require_once $classmap[ $class ];
+				return;
+			}
+
+			$prefix = 'PHPePub\\';
+			if ( 0 !== strpos( $class, $prefix ) ) {
+				return;
+			}
+
+			$relative = str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) );
+			$file = dirname( __DIR__ ) . '/libs/grandt/phpepub/src/PHPePub/' . $relative . '.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+			}
+		}
+	);
+
 	// The checked-in vendor tree used by these tests can omit the runtime phpzip package.
 	spl_autoload_register(
 		function ( $class ) {
+			$zipmerge_prefix = 'ZipMerge\\Zip\\';
+			if ( 0 === strpos( $class, $zipmerge_prefix ) ) {
+				$relative = str_replace( '\\', '/', substr( $class, strlen( $zipmerge_prefix ) ) );
+				$file = dirname( __DIR__ ) . '/libs/grandt/phpzipmerge/src/ZipMerge/Zip/' . $relative . '.php';
+				if ( file_exists( $file ) ) {
+					require_once $file;
+				}
+				return;
+			}
+
 			$prefix = 'PHPZip\\Zip\\';
 			if ( 0 !== strpos( $class, $prefix ) ) {
 				return;
@@ -188,10 +235,14 @@ namespace {
 	}
 
 	function get_option( $option, $default = false ) {
+		if ( isset( $GLOBALS['wp_test_options'] ) && array_key_exists( $option, $GLOBALS['wp_test_options'] ) ) {
+			return $GLOBALS['wp_test_options'][ $option ];
+		}
 		return $default;
 	}
 
 	function update_option( $option, $value, $autoload = null ) {
+		$GLOBALS['wp_test_options'][ $option ] = $value;
 		return true;
 	}
 
@@ -208,14 +259,20 @@ namespace {
 	}
 
 	function get_post_meta( $post_id, $key = '', $single = false ) {
+		if ( isset( $GLOBALS['wp_test_post_meta'][ $post_id ][ $key ] ) ) {
+			$values = (array) $GLOBALS['wp_test_post_meta'][ $post_id ][ $key ];
+			return $single ? end( $values ) : $values;
+		}
 		return $single ? '' : array();
 	}
 
 	function update_post_meta( $post_id, $meta_key, $meta_value, $prev_value = '' ) {
+		$GLOBALS['wp_test_post_meta'][ $post_id ][ $meta_key ] = array( $meta_value );
 		return true;
 	}
 
 	function delete_post_meta( $post_id, $meta_key, $meta_value = '' ) {
+		unset( $GLOBALS['wp_test_post_meta'][ $post_id ][ $meta_key ] );
 		return true;
 	}
 
@@ -225,6 +282,10 @@ namespace {
 
 	function sanitize_title( $title, $fallback_title = '', $context = 'save' ) {
 		return preg_replace( '/[^a-z0-9-]/', '-', strtolower( $title ) );
+	}
+
+	function sanitize_key( $key ) {
+		return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $key ) );
 	}
 
 	function sanitize_text_field( $str ) {
@@ -247,12 +308,42 @@ namespace {
 		return is_string( $value ) ? stripslashes( $value ) : $value;
 	}
 
+	function wp_strip_all_tags( $text, $remove_breaks = false ) {
+		return strip_tags( $text );
+	}
+
+	function esc_url_raw( $url, $protocols = null ) {
+		return (string) $url;
+	}
+
+	function absint( $maybeint ) {
+		return abs( intval( $maybeint ) );
+	}
+
+	function wp_register_ability_category( $slug, $args = array() ) {
+		$GLOBALS['wp_test_ability_categories'][ $slug ] = $args;
+		return true;
+	}
+
+	function wp_get_ability_category( $slug ) {
+		return isset( $GLOBALS['wp_test_ability_categories'][ $slug ] ) ? $GLOBALS['wp_test_ability_categories'][ $slug ] : null;
+	}
+
+	function wp_register_ability( $name, $args = array() ) {
+		$GLOBALS['wp_test_abilities'][ $name ] = $args;
+		return true;
+	}
+
+	function wp_get_ability( $name ) {
+		return isset( $GLOBALS['wp_test_abilities'][ $name ] ) ? $GLOBALS['wp_test_abilities'][ $name ] : null;
+	}
+
 	function is_user_logged_in() {
 		return false;
 	}
 
 	function current_user_can( $capability, ...$args ) {
-		return false;
+		return ! empty( $GLOBALS['wp_test_current_user_caps'][ $capability ] );
 	}
 
 	function get_the_author_meta( $field = '', $user_id = false ) {
@@ -306,6 +397,10 @@ namespace {
 
 	function get_permalink( $post = 0 ) {
 		return get_the_permalink( $post );
+	}
+
+	function get_edit_post_link( $id = 0, $context = 'display' ) {
+		return admin_url( 'post.php?post=' . intval( $id ) . '&action=edit' );
 	}
 
 	function get_post_format( $post = null ) {
@@ -367,6 +462,33 @@ namespace {
 
 		public function __construct( $query = '' ) {
 			$this->query_vars = is_array( $query ) ? $query : array();
+			$this->posts = isset( $GLOBALS['wp_test_query_posts'] ) ? $GLOBALS['wp_test_query_posts'] : array_values( $GLOBALS['wp_test_posts'] ?? array() );
+
+			if ( ! empty( $this->query_vars['post__in'] ) ) {
+				$post_ids = array_map( 'intval', (array) $this->query_vars['post__in'] );
+				$this->posts = array_values(
+					array_filter(
+						$this->posts,
+						function ( $post ) use ( $post_ids ) {
+							return in_array( (int) $post->ID, $post_ids, true );
+						}
+					)
+				);
+			}
+
+			if ( ! empty( $this->query_vars['meta_query'][0]['key'] ) ) {
+				$key = $this->query_vars['meta_query'][0]['key'];
+				$compare = $this->query_vars['meta_query'][0]['compare'] ?? '';
+				$this->posts = array_values(
+					array_filter(
+						$this->posts,
+						function ( $post ) use ( $key, $compare ) {
+							$has_meta = '' !== get_post_meta( $post->ID, $key, true );
+							return 'EXISTS' === $compare ? $has_meta : ! $has_meta;
+						}
+					)
+				);
+			}
 		}
 
 		public function get_posts() {
@@ -381,6 +503,7 @@ namespace {
 		public $post_content = '';
 		public $post_excerpt = '';
 		public $post_status = 'publish';
+		public $post_type = 'post';
 
 		public function __construct( $post = null ) {
 			if ( is_object( $post ) ) {
@@ -395,6 +518,16 @@ namespace {
 		if ( $post instanceof WP_Post ) {
 			return $post;
 		}
+		if ( is_numeric( $post ) ) {
+			$post_id = intval( $post );
+			if ( isset( $GLOBALS['wp_test_posts'][ $post_id ] ) ) {
+				return $GLOBALS['wp_test_posts'][ $post_id ];
+			}
+			$wp_post = new WP_Post();
+			$wp_post->ID = $post_id;
+			$wp_post->post_title = 'Post ' . $post_id;
+			return $wp_post;
+		}
 		return new WP_Post( $post );
 	}
 
@@ -403,6 +536,7 @@ namespace {
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-ai-assistant-integration.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-send-to-e-reader.php';
+	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-abilities.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-download.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-generic-email.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-kindle.php';
