@@ -54,7 +54,7 @@ class Abilities {
 			return;
 		}
 
-		if ( function_exists( 'wp_get_ability_category' ) && wp_get_ability_category( self::CATEGORY ) ) {
+		if ( function_exists( 'wp_has_ability_category' ) && wp_has_ability_category( self::CATEGORY ) ) {
 			return;
 		}
 
@@ -517,7 +517,7 @@ class Abilities {
 	 * @param array  $args       Ability registration arguments.
 	 */
 	private function register_ability( $ability_id, $args ) {
-		if ( function_exists( 'wp_get_ability' ) && wp_get_ability( $ability_id ) ) {
+		if ( function_exists( 'wp_has_ability' ) && wp_has_ability( $ability_id ) ) {
 			return;
 		}
 
