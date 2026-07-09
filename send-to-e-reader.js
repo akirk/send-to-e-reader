@@ -1,7 +1,7 @@
 jQuery( function( $ ) {
 	var $document = $( document );
 
-	wp = wp || {};
+	window.wp = window.wp || {};
 	$document.on( 'click', 'a.friends-send-post-to-e-reader,a.friends-send-new-posts-to-ereader', function() {
 		var $this = $(this);
 		var search_indicator = $this.find( 'i' );

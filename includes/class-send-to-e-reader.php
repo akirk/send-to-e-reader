@@ -384,13 +384,18 @@ class Send_To_E_Reader {
 	}
 
 	public function admin_enqueue_scripts() {
-		if ( ! $this->friends_is_available() ) {
+		$friends_available = $this->friends_is_available();
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen detection.
+
+		if ( ! $friends_available && ! in_array( $page, array( 'send-to-e-reader', 'send-to-e-reader-ereaders', 'send-to-e-reader-settings' ), true ) ) {
 			return;
 		}
+
 		$handle = 'send-to-e-reader';
 		$file = 'send-to-e-reader.js';
 		$version = SEND_TO_E_READER_VERSION;
-		wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), array( 'friends-admin' ), apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ), true );
+		$dependencies = $friends_available ? array( 'friends-admin' ) : array( 'jquery' );
+		wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), $dependencies, apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ), true );
 	}
 
 	public function admin_menu() {
