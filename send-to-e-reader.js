@@ -117,7 +117,7 @@ jQuery( function( $ ) {
 		return false;
 	} );
 
-	$document.on( 'click', 'a#add-reader', function() {
+	$document.on( 'click', '#add-reader', function() {
 		$( 'tr.template' ).removeClass( 'hidden' ).find( 'input:visible:first' ).focus();
 		$( this ).remove();
 		return false;

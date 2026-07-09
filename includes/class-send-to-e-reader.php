@@ -383,11 +383,13 @@ class Send_To_E_Reader {
 		}
 	}
 
-	public function admin_enqueue_scripts() {
+	public function admin_enqueue_scripts( $hook_suffix = '' ) {
 		$friends_available = $this->friends_is_available();
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen detection.
+		$plugin_pages = array( 'send-to-e-reader', 'send-to-e-reader-ereaders', 'send-to-e-reader-settings' );
+		$is_plugin_page = in_array( $page, $plugin_pages, true ) || false !== strpos( $hook_suffix, 'send-to-e-reader' );
 
-		if ( ! $friends_available && ! in_array( $page, array( 'send-to-e-reader', 'send-to-e-reader-ereaders', 'send-to-e-reader-settings' ), true ) ) {
+		if ( ! $friends_available && ! $is_plugin_page ) {
 			return;
 		}
 
@@ -395,7 +397,7 @@ class Send_To_E_Reader {
 		$file = 'send-to-e-reader.js';
 		$version = SEND_TO_E_READER_VERSION;
 		$dependencies = $friends_available ? array( 'friends-admin' ) : array( 'jquery' );
-		wp_enqueue_script( $handle, plugins_url( $file, __DIR__ ), $dependencies, apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ), true );
+		wp_enqueue_script( $handle, plugins_url( $file, SEND_TO_E_READER_PLUGIN_DIR . 'send-to-e-reader.php' ), $dependencies, apply_filters( 'friends_debug_enqueue', $version, $handle, dirname( __DIR__ ) . '/' . $file ), true );
 	}
 
 	public function admin_menu() {

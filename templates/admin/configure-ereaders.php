@@ -62,7 +62,7 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 		</tbody>
 	</table>
 	<?php if ( ! empty( $args['ereaders'] ) ) : ?>
-		<a href="" id="add-reader"><?php esc_html_e( 'Add another E-Reader', 'send-to-e-reader' ); ?></a>
+		<button type="button" id="add-reader" class="button button-secondary"><?php esc_html_e( 'Add another E-Reader', 'send-to-e-reader' ); ?></button>
 	<?php endif; ?>
 	<p class="description">
 		<?php
