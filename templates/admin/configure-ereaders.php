@@ -11,35 +11,29 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 
 ?>
 <?php if ( $args['display_about_friends'] ) : ?>
-	<div class="notice notice-info inline">
-		<p>
-			<strong><?php esc_html_e( 'Using Send to E-Reader without Friends', 'send-to-e-reader' ); ?></strong>
-		</p>
-		<p>
-			<?php
-			echo wp_kses(
-				sprintf(
-					// translators: %s: URL to the WordPress Posts admin page.
-					__( 'Open the <a href="%s">Posts</a> screen, select one or more posts, and choose <strong>Send to E-Reader</strong> from the Bulk actions menu. You can also use the <strong>Send to E-Reader</strong> row action on an individual post.', 'send-to-e-reader' ),
-					esc_url( admin_url( 'edit.php' ) )
+	<h2><?php esc_html_e( 'How to send posts', 'send-to-e-reader' ); ?></h2>
+	<p>
+		<?php
+		echo wp_kses(
+			sprintf(
+				// translators: %s: URL to the WordPress Posts admin page.
+				__( 'Use <strong>Send to E-Reader</strong> on the <a href="%s">Posts</a> screen for a single post, or select several posts and run <strong>Bulk actions > Send to E-Reader</strong>. The default <strong>Download ePub</strong> reader creates an ePub download.', 'send-to-e-reader' ),
+				esc_url( admin_url( 'edit.php' ) )
+			),
+			array(
+				'a'      => array(
+					'href' => array(),
 				),
-				array(
-					'a'      => array(
-						'href' => array(),
-					),
-					'strong' => array(),
-				)
-			);
-			?>
-		</p>
-		<p>
-			<?php esc_html_e( 'The built-in Download ePub reader is active by default, so those actions create an ePub download. Add an e-mail based reader below when you want wireless delivery to a device.', 'send-to-e-reader' ); ?>
-		</p>
-	</div>
+				'strong' => array(),
+			)
+		);
+		?>
+	</p>
 <?php endif; ?>
 
 <form method="post">
 	<?php wp_nonce_field( $args['nonce_value'] ); ?>
+	<h2><?php esc_html_e( 'Delivery options', 'send-to-e-reader' ); ?></h2>
 	<table class="reader-table form-table">
 		<thead>
 			<tr>
@@ -93,15 +87,10 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 	<?php endif; ?>
 	<p class="description">
 		<?php
-		echo esc_html__( 'Some E-Readers offer wireless delivery via an e-mail address which you\'ll first need to create.', 'send-to-e-reader' );
-		?>
-	</p>
-	<p class="description">
-		<?php
 		echo wp_kses(
 			sprintf(
 				// translators: %1$s and %2$s are URLs.
-				__( 'Examples include Kindle (@free.kindle.com, <a href="%1$s">Instructions</a>) or Pocketbook (@pbsync.com, <a href="%2$s">Instructions</a>).', 'send-to-e-reader' ),
+				__( 'For wireless delivery, add an e-mail based reader after creating its device address. Kindle (<a href="%1$s">instructions</a>) and Pocketbook (<a href="%2$s">instructions</a>) are common examples; the plugin sends an ePub file as an attachment.', 'send-to-e-reader' ),
 				'https://help.fivefilters.org/push-to-kindle/email-address.html" target="_blank" rel="noopener noreferrer',
 				'https://sync.pocketbook-int.com/files/s2pb_info_en.pdf" target="_blank" rel="noopener noreferrer'
 			),
@@ -126,48 +115,38 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 
 		?>
 	</p>
-	<p class="description">
-		<?php
-		esc_html_e( 'Theoretically you can enter any e-mail address.', 'send-to-e-reader' );
-		echo ' ';
-		esc_html_e( 'By default the plugin will send an e-mail with an ePub file attached.', 'send-to-e-reader' );
-		?>
-		</p>
 	<p class="submit">
 		<input type="submit" id="submit" class="button button-primary" value="<?php echo esc_html( $save_changes ); ?>">
 	</p>
 </form>
 
-<?php if ( $args['display_about_friends'] ) : ?>
-	<p>
-		<?php
-		echo wp_kses(
-			// translators: %s: URL to the Friends Plugin page on WordPress.org.
-			sprintf( __( 'This plugin also integrates with the Friends plugin for sending friend and feed posts to your e-reader. Learn more on the Friends <a href=%s>plugin page on WordPress.org</a>.', 'send-to-e-reader' ), '"https://wordpress.org/plugins/friends" target="_blank" rel="noopener noreferrer"' ),
-			array(
-				'a' => array(
-					'href'   => array(),
-					'rel'    => array(),
-					'target' => array(),
-				),
-			)
-		);
-		?>
-	</p>
-<?php endif; ?>
-<p>
+<p class="description">
 <?php
-echo wp_kses(
-	// translators: %s: URL to the Embed library.
-	sprintf( __( 'This plugin is largely powered by the open source project <a href=%s>PHPePub</a>.', 'send-to-e-reader' ), '"https://github.com/Grandt/PHPePub" target="_blank" rel="noopener noreferrer"' ),
-	array(
-		'a' => array(
-			'href'   => array(),
-			'rel'    => array(),
-			'target' => array(),
-		),
-	)
-);
+if ( $args['display_about_friends'] ) {
+	echo wp_kses(
+		// translators: %1$s: URL to the Friends Plugin page on WordPress.org, %2$s: URL to the PHPePub library.
+		sprintf( __( 'Optional: integrate with the Friends plugin for friend and feed posts (<a href=%1$s>learn more</a>). Powered by <a href=%2$s>PHPePub</a>.', 'send-to-e-reader' ), 'https://wordpress.org/plugins/friends" target="_blank" rel="noopener noreferrer', 'https://github.com/Grandt/PHPePub" target="_blank" rel="noopener noreferrer' ),
+		array(
+			'a' => array(
+				'href'   => array(),
+				'rel'    => array(),
+				'target' => array(),
+			),
+		)
+	);
+} else {
+	echo wp_kses(
+		// translators: %s: URL to the PHPePub library.
+		sprintf( __( 'Powered by <a href=%s>PHPePub</a>.', 'send-to-e-reader' ), 'https://github.com/Grandt/PHPePub" target="_blank" rel="noopener noreferrer' ),
+		array(
+			'a' => array(
+				'href'   => array(),
+				'rel'    => array(),
+				'target' => array(),
+			),
+		)
+	);
+}
 ?>
 </p>
 <?php
