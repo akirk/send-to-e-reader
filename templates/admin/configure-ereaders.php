@@ -12,6 +12,7 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 ?>
 <form method="post">
 	<?php wp_nonce_field( $args['nonce_value'] ); ?>
+	<h2><?php esc_html_e( 'Delivery options', 'send-to-e-reader' ); ?></h2>
 	<table class="reader-table form-table">
 		<thead>
 			<tr>
@@ -61,19 +62,14 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 		</tbody>
 	</table>
 	<?php if ( ! empty( $args['ereaders'] ) ) : ?>
-		<a href="" id="add-reader"><?php esc_html_e( 'Add another E-Reader', 'send-to-e-reader' ); ?></a>
+		<button type="button" id="add-reader" class="button button-secondary"><?php esc_html_e( 'Add another E-Reader', 'send-to-e-reader' ); ?></button>
 	<?php endif; ?>
-	<p class="description">
-		<?php
-		echo esc_html__( 'Some E-Readers offer wireless delivery via an e-mail address which you\'ll first need to create.', 'send-to-e-reader' );
-		?>
-	</p>
 	<p class="description">
 		<?php
 		echo wp_kses(
 			sprintf(
 				// translators: %1$s and %2$s are URLs.
-				__( 'Examples include Kindle (@free.kindle.com, <a href="%1$s">Instructions</a>) or Pocketbook (@pbsync.com, <a href="%2$s">Instructions</a>).', 'send-to-e-reader' ),
+				__( 'For wireless delivery, add an e-mail based reader after creating its device address. Kindle (<a href="%1$s">instructions</a>) and Pocketbook (<a href="%2$s">instructions</a>) are common examples; the plugin sends an ePub file as an attachment.', 'send-to-e-reader' ),
 				'https://help.fivefilters.org/push-to-kindle/email-address.html" target="_blank" rel="noopener noreferrer',
 				'https://sync.pocketbook-int.com/files/s2pb_info_en.pdf" target="_blank" rel="noopener noreferrer'
 			),
@@ -98,48 +94,8 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 
 		?>
 	</p>
-	<p class="description">
-		<?php
-		esc_html_e( 'Theoretically you can enter any e-mail address.', 'send-to-e-reader' );
-		echo ' ';
-		esc_html_e( 'By default the plugin will send an e-mail with an ePub file attached.', 'send-to-e-reader' );
-		?>
-		</p>
 	<p class="submit">
 		<input type="submit" id="submit" class="button button-primary" value="<?php echo esc_html( $save_changes ); ?>">
 	</p>
 </form>
-
-<?php if ( $args['display_about_friends'] ) : ?>
-	<p>
-		<?php
-		echo wp_kses(
-			// translators: %s: URL to the Friends Plugin page on WordPress.org.
-			sprintf( __( 'The Friends plugin is all about connecting with friends and news. Learn more on its <a href=%s>plugin page on WordPress.org</a>.', 'send-to-e-reader' ), '"https://wordpress.org/plugins/friends" target="_blank" rel="noopener noreferrer"' ),
-			array(
-				'a' => array(
-					'href'   => array(),
-					'rel'    => array(),
-					'target' => array(),
-				),
-			)
-		);
-		?>
-	</p>
-<?php endif; ?>
-<p>
-<?php
-echo wp_kses(
-	// translators: %s: URL to the Embed library.
-	sprintf( __( 'This plugin is largely powered by the open source project <a href=%s>PHPePub</a>.', 'send-to-e-reader' ), '"https://github.com/Grandt/PHPePub" target="_blank" rel="noopener noreferrer"' ),
-	array(
-		'a' => array(
-			'href'   => array(),
-			'rel'    => array(),
-			'target' => array(),
-		),
-	)
-);
-?>
-</p>
 <?php
