@@ -10,6 +10,34 @@ defined( 'ABSPATH' ) || exit;
 $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 
 ?>
+<?php if ( $args['display_about_friends'] ) : ?>
+	<div class="notice notice-info inline">
+		<p>
+			<strong><?php esc_html_e( 'Using Send to E-Reader without Friends', 'send-to-e-reader' ); ?></strong>
+		</p>
+		<p>
+			<?php
+			echo wp_kses(
+				sprintf(
+					// translators: %s: URL to the WordPress Posts admin page.
+					__( 'Open the <a href="%s">Posts</a> screen, select one or more posts, and choose <strong>Send to E-Reader</strong> from the Bulk actions menu. You can also use the <strong>Send to E-Reader</strong> row action on an individual post.', 'send-to-e-reader' ),
+					esc_url( admin_url( 'edit.php' ) )
+				),
+				array(
+					'a'      => array(
+						'href' => array(),
+					),
+					'strong' => array(),
+				)
+			);
+			?>
+		</p>
+		<p>
+			<?php esc_html_e( 'The built-in Download ePub reader is active by default, so those actions create an ePub download. Add an e-mail based reader below when you want wireless delivery to a device.', 'send-to-e-reader' ); ?>
+		</p>
+	</div>
+<?php endif; ?>
+
 <form method="post">
 	<?php wp_nonce_field( $args['nonce_value'] ); ?>
 	<table class="reader-table form-table">
@@ -115,7 +143,7 @@ $save_changes = __( 'Save Changes', 'send-to-e-reader' );
 		<?php
 		echo wp_kses(
 			// translators: %s: URL to the Friends Plugin page on WordPress.org.
-			sprintf( __( 'The Friends plugin is all about connecting with friends and news. Learn more on its <a href=%s>plugin page on WordPress.org</a>.', 'send-to-e-reader' ), '"https://wordpress.org/plugins/friends" target="_blank" rel="noopener noreferrer"' ),
+			sprintf( __( 'This plugin also integrates with the Friends plugin for sending friend and feed posts to your e-reader. Learn more on the Friends <a href=%s>plugin page on WordPress.org</a>.', 'send-to-e-reader' ), '"https://wordpress.org/plugins/friends" target="_blank" rel="noopener noreferrer"' ),
 			array(
 				'a' => array(
 					'href'   => array(),
