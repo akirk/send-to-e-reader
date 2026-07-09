@@ -36,30 +36,22 @@ defined( 'ABSPATH' ) || exit;
 		<?php esc_html_e( 'On the Posts screen, select multiple posts and choose Send to E-Reader from the Bulk actions menu.', 'send-to-e-reader' ); ?>
 	</li>
 	<li>
-		<?php esc_html_e( 'With the Friends plugin installed, use the e-reader actions on friend and feed posts, or configure automatic sending for new articles.', 'send-to-e-reader' ); ?>
+		<?php
+		echo wp_kses(
+			sprintf(
+				// translators: %s: URL to install or manage the Friends plugin.
+				__( 'With the <a href="%s">Friends plugin</a> installed, use the e-reader actions on friend and feed posts, or configure automatic sending for new articles.', 'send-to-e-reader' ),
+				esc_url( $args['friends_available'] ? admin_url( 'admin.php?page=friends' ) : admin_url( 'plugin-install.php?s=friends&tab=search&type=term' ) )
+			),
+			array(
+				'a' => array(
+					'href' => array(),
+				),
+			)
+		);
+		?>
 	</li>
 </ul>
-
-<?php if ( ! $args['friends_available'] ) : ?>
-	<div class="notice notice-info inline">
-		<p>
-			<?php
-			echo wp_kses(
-				sprintf(
-					// translators: %s: URL to the Friends plugin page on WordPress.org.
-					__( 'Optional: install the <a href="%s">Friends plugin</a> to follow feeds and send friend posts to your e-reader from inside WordPress.', 'send-to-e-reader' ),
-					esc_url( admin_url( 'plugin-install.php?s=friends&tab=search&type=term' ) )
-				),
-				array(
-					'a' => array(
-						'href' => array(),
-					),
-				)
-			);
-			?>
-		</p>
-	</div>
-<?php endif; ?>
 
 <h2><?php esc_html_e( 'Delivery', 'send-to-e-reader' ); ?></h2>
 <p>
