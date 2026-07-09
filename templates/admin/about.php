@@ -48,7 +48,7 @@ defined( 'ABSPATH' ) || exit;
 				sprintf(
 					// translators: %s: URL to the Friends plugin page on WordPress.org.
 					__( 'Optional: install the <a href="%s">Friends plugin</a> to follow feeds and send friend posts to your e-reader from inside WordPress.', 'send-to-e-reader' ),
-					esc_url( admin_url( 'plugin-install.php?s=Friends&tab=search&type=term' ) )
+					esc_url( admin_url( 'plugin-install.php?s=friends&tab=search&type=term' ) )
 				),
 				array(
 					'a' => array(
