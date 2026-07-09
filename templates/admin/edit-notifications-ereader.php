@@ -18,7 +18,7 @@
 					sprintf(
 						// translators: %s is an URL.
 						__( 'No E-Reader available that supports sending. Go to the <a href=%s>Send to E-Reader settings</a> to add one.', 'send-to-e-reader' ),
-						'"' . self_admin_url( 'admin.php?page=send-to-e-reader' ) . '"'
+						'"' . self_admin_url( 'admin.php?page=send-to-e-reader-ereaders' ) . '"'
 					),
 					array( 'a' => array( 'href' => array() ) )
 				);

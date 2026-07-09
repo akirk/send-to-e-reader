@@ -399,10 +399,18 @@ class Send_To_E_Reader {
 		if ( $friends_settings_exist ) {
 			add_submenu_page(
 				'friends',
+				__( 'Send to E-Reader', 'send-to-e-reader' ),
+				__( 'Send to E-Reader', 'send-to-e-reader' ),
+				'edit_private_posts',
+				'send-to-e-reader',
+				array( $this, 'about' )
+			);
+			add_submenu_page(
+				'friends',
 				__( 'E-Readers', 'send-to-e-reader' ),
 				__( 'E-Readers', 'send-to-e-reader' ),
 				'edit_private_posts',
-				'send-to-e-reader',
+				'send-to-e-reader-ereaders',
 				array( $this, 'configure_ereaders' )
 			);
 			add_submenu_page(
@@ -416,11 +424,19 @@ class Send_To_E_Reader {
 		} else {
 			add_submenu_page(
 				'tools.php',
+				__( 'Send to E-Reader', 'send-to-e-reader' ),
+				__( 'Send to E-Reader', 'send-to-e-reader' ),
+				'edit_private_posts',
+				'send-to-e-reader',
+				array( $this, 'about' )
+			);
+			add_submenu_page(
+				'tools.php',
 				__( 'E-Readers', 'send-to-e-reader' ),
 				__( 'E-Readers', 'send-to-e-reader' ),
 				'edit_private_posts',
-				'send-to-e-reader',
-				array( $this, 'configure_ereaders_with_friends_about' )
+				'send-to-e-reader-ereaders',
+				array( $this, 'configure_ereaders' )
 			);
 			add_submenu_page(
 				'options-general.php',
@@ -660,11 +676,29 @@ class Send_To_E_Reader {
 				'active' => $active,
 				'title'  => __( 'Send to E-Reader', 'send-to-e-reader' ),
 				'menu'   => array(
-					__( 'E-Readers', 'send-to-e-reader' ) => 'send-to-e-reader',
-					__( 'Settings' )             => 'send-to-e-reader-settings', // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+					__( 'How it works', 'send-to-e-reader' ) => 'send-to-e-reader',
+					__( 'E-Readers', 'send-to-e-reader' )    => 'send-to-e-reader-ereaders',
+					__( 'Settings' )                         => 'send-to-e-reader-settings', // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 				),
 			)
 		);
+	}
+
+	/**
+	 * Display the plugin overview page.
+	 */
+	public function about() {
+		$this->settings_header( 'send-to-e-reader' );
+
+		$this->get_template_loader()->get_template_part(
+			'admin/about',
+			null,
+			array(
+				'friends_available' => $this->friends_is_available(),
+			)
+		);
+
+		$this->get_template_loader()->get_template_part( 'admin/ereader-settings-footer' );
 	}
 
 	/**
@@ -700,10 +734,8 @@ class Send_To_E_Reader {
 
 	/**
 	 * Display the configure e-readers page for the plugin.
-	 *
-	 * @param      bool $display_about_friends  The display about friends section.
 	 */
-	public function configure_ereaders( $display_about_friends = false ) {
+	public function configure_ereaders() {
 		$ereaders = $this->get_ereaders();
 
 		$friends = $this->friends_is_available() ? \Friends\Friends::get_instance() : null;
@@ -750,7 +782,7 @@ class Send_To_E_Reader {
 			$this->update_ereaders( $ereaders );
 		}
 
-		$this->settings_header( 'send-to-e-reader' );
+		$this->settings_header( 'send-to-e-reader-ereaders' );
 
 		$this->get_template_loader()->get_template_part(
 			'admin/configure-ereaders',
@@ -759,19 +791,11 @@ class Send_To_E_Reader {
 				'ereaders'              => $ereaders,
 				'nonce_value'           => $nonce_value,
 				'friends'               => $friends,
-				'display_about_friends' => $display_about_friends,
 				'ereader_classes'       => $this->ereader_classes,
 			)
 		);
 
 		$this->get_template_loader()->get_template_part( 'admin/ereader-settings-footer' );
-	}
-
-	/**
-	 * Display an about page for the plugin with the friends section.
-	 */
-	public function configure_ereaders_with_friends_about() {
-		return $this->configure_ereaders( true );
 	}
 
 	/**
@@ -1085,7 +1109,7 @@ class Send_To_E_Reader {
 						printf(
 							/* translators: %s is a link to the settings page */
 							esc_html__( 'No active E-Reader configured. Please configure one in the %s.', 'send-to-e-reader' ),
-							'<a href="' . esc_url( admin_url( 'options-general.php?page=send-to-e-reader-settings' ) ) . '">' . esc_html__( 'settings', 'send-to-e-reader' ) . '</a>'
+							'<a href="' . esc_url( admin_url( 'admin.php?page=send-to-e-reader-ereaders' ) ) . '">' . esc_html__( 'E-Readers', 'send-to-e-reader' ) . '</a>'
 						);
 					?></p>
 				</div>
