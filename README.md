@@ -11,6 +11,8 @@ Stable tag: 1.1.0
 
 Send your posts to your e-reader device as an ePub file by email or download.
 
+[Try it in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fraw.githubusercontent.com%2Fakirk%2Fsend-to-e-reader%2Fmain%2Fblueprint.json)
+
 ## Description
 
 Send posts to your e-reader as ePub files - either via e-mail or direct download.
