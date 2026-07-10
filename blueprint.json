@@ -1,29 +1,29 @@
 {
-	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
-	"meta": {
-		"title": "Send to E-Reader",
-		"description": "Send posts to your e-reader. Works standalone or integrates with the Friends plugin.",
-		"author": "Alex Kirk",
-		"categories": [
-			"Apps",
-			"Publishing"
-		]
-	},
-	"landingPage": "/wp-admin/tools.php?page=send-to-e-reader",
-	"login": true,
-	"steps": [
-		{
-			"step": "installPlugin",
-			"pluginData": {
-				"resource": "git:directory",
-				"url": "https://github.com/akirk/send-to-e-reader",
-				"ref": "dist/main",
-				"refType": "branch"
-			},
-			"options": {
-				"activate": true,
-				"targetFolderName": "send-to-e-reader"
-			}
-		}
-	]
+    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+    "meta": {
+        "title": "Send to E-Reader",
+        "description": "Send posts to your e-reader. Works standalone or integrates with the Friends plugin.",
+        "author": "Alex Kirk",
+        "categories": [
+            "Apps",
+            "Publishing"
+        ]
+    },
+    "landingPage": "/wp-admin/tools.php?page=send-to-e-reader",
+    "login": true,
+    "steps": [
+        {
+            "step": "installPlugin",
+            "pluginData": {
+                "resource": "git:directory",
+                "url": "https://github.com/akirk/send-to-e-reader",
+                "ref": "dist/pr-29",
+                "refType": "branch"
+            },
+            "options": {
+                "activate": true,
+                "targetFolderName": "send-to-e-reader"
+            }
+        }
+    ]
 }
