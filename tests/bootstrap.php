@@ -99,11 +99,22 @@ namespace {
 		define( 'ABSPATH', '/tmp/' );
 	}
 
+	$GLOBALS['wpdb'] = new class {
+		public $postmeta = 'wp_postmeta';
+
+		public function update( $table, $data, $where ) {
+			return true;
+		}
+	};
+
 	// Load Composer autoloader.
 	require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
 	if ( ! class_exists( 'RelativePath', false ) ) {
 		require_once dirname( __DIR__ ) . '/libs/grandt/relativepath/RelativePath.php';
+	}
+	if ( ! class_exists( 'UUID', false ) ) {
+		require_once dirname( __DIR__ ) . '/libs/grandt/phpepub/src/lib.uuid.php';
 	}
 
 	// The checked-in vendor tree used by these tests can omit the runtime phpzip package.
@@ -116,6 +127,48 @@ namespace {
 
 			$relative = str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) );
 			$file = dirname( __DIR__ ) . '/libs/phpzip/phpzip/src/Zip/' . $relative . '.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+			}
+		}
+	);
+	spl_autoload_register(
+		function ( $class ) {
+			$prefix = 'PHPePub\\';
+			if ( 0 !== strpos( $class, $prefix ) ) {
+				return;
+			}
+
+			$relative = str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) );
+			$file = dirname( __DIR__ ) . '/libs/grandt/phpepub/src/PHPePub/' . $relative . '.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+			}
+		}
+	);
+	spl_autoload_register(
+		function ( $class ) {
+			$prefix = 'ZipMerge\\';
+			if ( 0 !== strpos( $class, $prefix ) ) {
+				return;
+			}
+
+			$relative = str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) );
+			$file = dirname( __DIR__ ) . '/libs/grandt/phpzipmerge/src/ZipMerge/' . $relative . '.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+			}
+		}
+	);
+	spl_autoload_register(
+		function ( $class ) {
+			$prefix = 'com\\grandt\\';
+			if ( 0 !== strpos( $class, $prefix ) ) {
+				return;
+			}
+
+			$class_name = substr( $class, strlen( $prefix ) );
+			$file       = dirname( __DIR__ ) . '/libs/grandt/binstring/' . $class_name . '.php';
 			if ( file_exists( $file ) ) {
 				require_once $file;
 			}
@@ -176,11 +229,53 @@ namespace {
 	}
 
 	function add_filter( $tag, $function_to_add, $priority = 10, $accepted_args = 1 ) {
+		global $wp_filter;
+
+		if ( ! isset( $wp_filter ) || ! is_array( $wp_filter ) ) {
+			$wp_filter = array();
+		}
+
+		$wp_filter[ $tag ][ $priority ][] = array(
+			'function'      => $function_to_add,
+			'accepted_args' => $accepted_args,
+		);
+
 		return true;
 	}
 
 	function apply_filters( $tag, $value, ...$args ) {
+		global $wp_filter;
+
+		if ( empty( $wp_filter[ $tag ] ) ) {
+			return $value;
+		}
+
+		ksort( $wp_filter[ $tag ] );
+
+		foreach ( $wp_filter[ $tag ] as $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				$callback_args = array_slice( array_merge( array( $value ), $args ), 0, $callback['accepted_args'] );
+				$value = call_user_func_array( $callback['function'], $callback_args );
+			}
+		}
+
 		return $value;
+	}
+
+	function remove_all_filters( $tag, $priority = false ) {
+		global $wp_filter;
+
+		if ( ! isset( $wp_filter[ $tag ] ) ) {
+			return true;
+		}
+
+		if ( false === $priority ) {
+			unset( $wp_filter[ $tag ] );
+			return true;
+		}
+
+		unset( $wp_filter[ $tag ][ $priority ] );
+		return true;
 	}
 
 	function did_action( $hook_name ) {

@@ -184,6 +184,7 @@ abstract class E_Reader {
 		if ( ! $this->ebook_author ) {
 			$this->ebook_author = implode( ', ', $authors );
 		}
+		$this->ebook_author = apply_filters( 'send_to_e_reader_ebook_author', $this->ebook_author, $posts, $title, $author );
 		$this->ebook_title = $this->strip_emojis( $this->ebook_title );
 		$this->ebook_author = $this->strip_emojis( $this->ebook_author );
 
