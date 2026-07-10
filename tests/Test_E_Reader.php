@@ -16,6 +16,11 @@ use Send_To_E_Reader\E_Reader_Generic_Email;
  */
 class Test_E_Reader extends TestCase {
 
+	public function tearDown(): void {
+		remove_all_filters( 'friends_override_author_name' );
+		parent::tearDown();
+	}
+
 	/**
 	 * Test E_Reader_Download instantiation.
 	 */
@@ -152,6 +157,31 @@ class Test_E_Reader extends TestCase {
 
 		$ereader->active = false;
 		$this->assertFalse( $ereader->active );
+	}
+
+	/**
+	 * Test override author names replace the user author in ePub chapter bylines.
+	 */
+	public function test_author_override_replaces_post_author_name() {
+		add_filter(
+			'friends_override_author_name',
+			function () {
+				return 'Zetaphor';
+			},
+			10,
+			3
+		);
+
+		$post = new \WP_Post();
+		$post->ID = 123;
+		$post->post_author = 1;
+
+		$ereader = new E_Reader_Download( 'Test' );
+		$method = new \ReflectionMethod( $ereader, 'update_author_name' );
+		$method->setAccessible( true );
+
+		$this->assertSame( 'Zetaphor', $method->invoke( $ereader, $post ) );
+		$this->assertSame( 'Zetaphor', $post->author_name );
 	}
 
 	/**
