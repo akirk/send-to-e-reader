@@ -126,7 +126,7 @@ abstract class E_Reader {
 			)
 		);
 
-		echo wp_kses_post( $post->post_content );
+		echo wp_kses_post( apply_filters( 'send_to_e_reader_post_content', $post->post_content, $post, $format ) );
 
 		self::get_template_loader()->get_template_part(
 			$format . '/footer',
