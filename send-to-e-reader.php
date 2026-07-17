@@ -29,6 +29,7 @@ require 'libs/autoload.php';
 require_once __DIR__ . '/includes/class-epub-builder.php';
 require_once __DIR__ . '/includes/class-ai-assistant-integration.php';
 require_once __DIR__ . '/includes/class-send-to-e-reader.php';
+require_once __DIR__ . '/includes/class-abilities.php';
 require_once __DIR__ . '/includes/class-e-reader.php';
 
 add_filter( 'send_to_e_reader', '__return_true' );
