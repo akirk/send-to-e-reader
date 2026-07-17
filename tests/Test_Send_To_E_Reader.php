@@ -17,6 +17,11 @@ use Send_To_E_Reader\E_Reader_Generic_Email;
  */
 class Test_Send_To_E_Reader extends TestCase {
 
+	public function tearDown(): void {
+		remove_all_filters( 'friends_override_author_name' );
+		parent::tearDown();
+	}
+
 	/**
 	 * Test that Send_To_E_Reader can be instantiated without Friends.
 	 */
@@ -66,6 +71,49 @@ class Test_Send_To_E_Reader extends TestCase {
 		$author_name = $send_to_e_reader->get_post_author_name( $post );
 		$this->assertIsString( $author_name );
 		$this->assertNotEmpty( $author_name );
+	}
+
+	/**
+	 * Test that the ePub book author prefers post collection override names.
+	 */
+	public function test_ebook_author_filter_prefers_post_collection_override_name() {
+		add_filter(
+			'friends_override_author_name',
+			function ( $override_name, $author_name, $post_id ) {
+				if ( 123 === $post_id ) {
+					return 'Weekly Reading';
+				}
+
+				return $override_name;
+			},
+			10,
+			3
+		);
+
+		$send_to_e_reader = new Send_To_E_Reader( null );
+		$post = new \WP_Post();
+		$post->ID = 123;
+		$post->post_author = 1;
+
+		$this->assertSame(
+			'Weekly Reading',
+			apply_filters( 'send_to_e_reader_ebook_author', 'Test Author', array( $post ), null, 'Test Author' )
+		);
+	}
+
+	/**
+	 * Test that the ePub book author is unchanged without a post collection override.
+	 */
+	public function test_ebook_author_filter_keeps_existing_author_without_override_name() {
+		$send_to_e_reader = new Send_To_E_Reader( null );
+		$post = new \WP_Post();
+		$post->ID = 123;
+		$post->post_author = 1;
+
+		$this->assertSame(
+			'Test Author',
+			apply_filters( 'send_to_e_reader_ebook_author', 'Test Author', array( $post ), null, 'Test Author' )
+		);
 	}
 
 	/**

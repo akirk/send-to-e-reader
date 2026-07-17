@@ -208,6 +208,7 @@ class Send_To_E_Reader {
 		add_action( 'wp_ajax_unmark-e-reader-send', array( $this, 'ajax_unmark' ) );
 		add_filter( 'template_include', array( $this, 'download_via_url' ) );
 		add_action( 'admin_init', array( $this, 'admin_init' ) );
+		add_filter( 'send_to_e_reader_ebook_author', array( $this, 'filter_ebook_author' ), 10, 2 );
 
 		// Hook into post-collection article notes to identify sent articles.
 		add_filter( 'post_collection_article_queued_meta_query', array( $this, 'filter_article_queued_meta_query' ) );
@@ -229,6 +230,36 @@ class Send_To_E_Reader {
 			add_action( 'friends_author_header', array( $this, 'friends_author_header' ), 10, 2 );
 			add_filter( 'friends_friend_posts_query_viewable', array( $this, 'enable_download_via_url' ) );
 		}
+	}
+
+	/**
+	 * Prefer post collection override names for the generated ePub book author.
+	 *
+	 * @param string $author Current ePub book author.
+	 * @param array  $posts  Posts included in the ePub.
+	 * @return string Filtered ePub book author.
+	 */
+	public function filter_ebook_author( $author, array $posts ) {
+		$override_names = array();
+
+		foreach ( $posts as $post ) {
+			if ( ! $post instanceof \WP_Post ) {
+				continue;
+			}
+
+			$override_author_name = apply_filters( 'friends_override_author_name', '', $this->get_post_author_name( $post ), $post->ID );
+			if ( ! $override_author_name || in_array( $override_author_name, $override_names, true ) ) {
+				continue;
+			}
+
+			$override_names[] = $override_author_name;
+		}
+
+		if ( $override_names ) {
+			return implode( ', ', $override_names );
+		}
+
+		return $author;
 	}
 
 	/**

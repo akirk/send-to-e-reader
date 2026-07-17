@@ -146,8 +146,8 @@ abstract class E_Reader {
 			$author = self::get_post_author( $post );
 			$author_name = $author->display_name;
 			$override_author_name = apply_filters( 'friends_override_author_name', '', $author->display_name, $post->ID );
-			if ( $override_author_name && trim( str_replace( $override_author_name, '', $author_name ) ) === $author_name ) {
-				$author_name .= ' – ' . $override_author_name;
+			if ( $override_author_name ) {
+				$author_name = $override_author_name;
 			}
 			$post->author_name = $author_name;
 		}
@@ -184,6 +184,7 @@ abstract class E_Reader {
 		if ( ! $this->ebook_author ) {
 			$this->ebook_author = implode( ', ', $authors );
 		}
+		$this->ebook_author = apply_filters( 'send_to_e_reader_ebook_author', $this->ebook_author, $posts, $title, $author );
 		$this->ebook_title = $this->strip_emojis( $this->ebook_title );
 		$this->ebook_author = $this->strip_emojis( $this->ebook_author );
 
