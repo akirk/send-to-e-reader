@@ -19,6 +19,9 @@ class Test_Send_To_E_Reader extends TestCase {
 
 	public function tearDown(): void {
 		remove_all_filters( 'friends_override_author_name' );
+		remove_all_filters( 'send_to_e_reader_post_content' );
+		remove_all_filters( 'static_archive_post_types' );
+		remove_all_filters( 'static_archive_post_html' );
 		parent::tearDown();
 	}
 
@@ -113,6 +116,71 @@ class Test_Send_To_E_Reader extends TestCase {
 		$this->assertSame(
 			'Test Author',
 			apply_filters( 'send_to_e_reader_ebook_author', 'Test Author', array( $post ), null, 'Test Author' )
+		);
+	}
+
+	/**
+	 * Test that Static Archive-enabled post types reuse Static Archive HTML.
+	 */
+	public function test_static_archive_post_content_filter_reuses_static_archive_html() {
+		add_filter(
+			'static_archive_post_types',
+			function ( $post_types ) {
+				$post_types[] = 'book-entry';
+				return $post_types;
+			}
+		);
+		add_filter(
+			'static_archive_post_html',
+			function ( $html, $post ) {
+				if ( 'book-entry' === $post->post_type ) {
+					return '<h2>Archive Body</h2><p>Structured export.</p>';
+				}
+
+				return $html;
+			},
+			10,
+			3
+		);
+
+		$send_to_e_reader = new Send_To_E_Reader( null );
+		$post = new \WP_Post();
+		$post->post_type = 'book-entry';
+		$post->post_content = '<p>Plain post body.</p>';
+
+		$this->assertSame(
+			'<h2>Archive Body</h2><p>Structured export.</p>',
+			apply_filters( 'send_to_e_reader_post_content', $post->post_content, $post, 'epub' )
+		);
+	}
+
+	/**
+	 * Test that post types without Static Archive support keep their normal content.
+	 */
+	public function test_static_archive_post_content_filter_ignores_unsupported_post_types() {
+		add_filter(
+			'static_archive_post_types',
+			function () {
+				return array( 'book-entry' );
+			}
+		);
+		add_filter(
+			'static_archive_post_html',
+			function () {
+				return '<h2>Archive Body</h2>';
+			},
+			10,
+			3
+		);
+
+		$send_to_e_reader = new Send_To_E_Reader( null );
+		$post = new \WP_Post();
+		$post->post_type = 'post';
+		$post->post_content = '<p>Article body.</p>';
+
+		$this->assertSame(
+			'<p>Article body.</p>',
+			apply_filters( 'send_to_e_reader_post_content', $post->post_content, $post, 'epub' )
 		);
 	}
 

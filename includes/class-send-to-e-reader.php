@@ -209,6 +209,7 @@ class Send_To_E_Reader {
 		add_filter( 'template_include', array( $this, 'download_via_url' ) );
 		add_action( 'admin_init', array( $this, 'admin_init' ) );
 		add_filter( 'send_to_e_reader_ebook_author', array( $this, 'filter_ebook_author' ), 10, 2 );
+		add_filter( 'send_to_e_reader_post_content', array( $this, 'filter_static_archive_post_content' ), 10, 3 );
 
 		// Hook into post-collection article notes to identify sent articles.
 		add_filter( 'post_collection_article_queued_meta_query', array( $this, 'filter_article_queued_meta_query' ) );
@@ -260,6 +261,32 @@ class Send_To_E_Reader {
 		}
 
 		return $author;
+	}
+
+	/**
+	 * Use structured Static Archive HTML when exporting supported post types.
+	 *
+	 * @param string   $content Current post content.
+	 * @param \WP_Post $post    Post being exported.
+	 * @param string   $format  Export format.
+	 * @return string Filtered post content.
+	 */
+	public function filter_static_archive_post_content( $content, \WP_Post $post, $format ) {
+		if ( 'epub' !== $format || ! isset( $post->post_type ) ) {
+			return $content;
+		}
+
+		$post_types = apply_filters( 'static_archive_post_types', array() );
+		if ( ! is_array( $post_types ) || ! in_array( $post->post_type, $post_types, true ) ) {
+			return $content;
+		}
+
+		$archive_html = apply_filters( 'static_archive_post_html', '', $post, null );
+		if ( is_string( $archive_html ) && '' !== trim( $archive_html ) ) {
+			return $archive_html;
+		}
+
+		return $content;
 	}
 
 	/**
