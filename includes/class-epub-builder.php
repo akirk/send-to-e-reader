@@ -175,13 +175,14 @@ class Epub_Builder {
 				__( 'Chapter %d', 'send-to-e-reader' ),
 				$count + 1
 			);
-			$file_name     = ! empty( $chapter['filename'] ) ? (string) $chapter['filename'] : self::build_chapter_filename( $chapter_title, $count );
-			$chapter_base  = array_key_exists( 'base_dir', $chapter ) ? (string) $chapter['base_dir'] : $base_dir;
+			$file_name    = ! empty( $chapter['filename'] ) ? (string) $chapter['filename'] : self::build_chapter_filename( $chapter_title, $count );
+			$chapter_base = array_key_exists( 'base_dir', $chapter ) ? (string) $chapter['base_dir'] : $base_dir;
+			$content      = self::normalize_local_image_sources( $chapter['content'] );
 
 			$book->addChapter(
 				$chapter_title,
 				$file_name,
-				$chapter['content'],
+				$content,
 				! empty( $chapter['auto_split'] ),
 				isset( $chapter['external_references'] ) ? $chapter['external_references'] : \PHPePub\Core\EPub::EXTERNAL_REF_ADD,
 				$chapter_base
@@ -234,6 +235,100 @@ class Epub_Builder {
 	 */
 	private static function get_temp_dir() {
 		return rtrim( sys_get_temp_dir(), '/' ) . '/send_to_e_reader';
+	}
+
+	/**
+	 * Rewrite same-site image URLs to local paths so ePub generation can embed them
+	 * without fetching the site over HTTP.
+	 *
+	 * @param string $content Chapter XHTML.
+	 * @return string
+	 */
+	private static function normalize_local_image_sources( $content ) {
+		$content = (string) $content;
+		if ( false === stripos( $content, 'src=' ) ) {
+			return $content;
+		}
+
+		return preg_replace_callback(
+			'/(<(?:img|source)\b[^>]*\bsrc\s*=\s*)(["\'])([^"\']+)(\2)/i',
+			function ( $matches ) {
+				$src         = html_entity_decode( $matches[3], ENT_QUOTES, 'UTF-8' );
+				$local_src   = self::local_image_source( $src );
+				$quote       = $matches[2];
+				$escaped_src = esc_url( $local_src );
+
+				return $matches[1] . $quote . $escaped_src . $quote;
+			},
+			$content
+		);
+	}
+
+	/**
+	 * Convert a same-site image URL to a local path.
+	 *
+	 * @param string $src Image source URL or path.
+	 * @return string
+	 */
+	private static function local_image_source( $src ) {
+		$src = trim( (string) $src );
+		if ( '' === $src || 0 === strpos( $src, 'data:' ) ) {
+			return $src;
+		}
+
+		$uploads = function_exists( 'wp_get_upload_dir' ) ? wp_get_upload_dir() : array();
+		if ( is_array( $uploads ) && ! empty( $uploads['baseurl'] ) && ! empty( $uploads['basedir'] ) ) {
+			$local_path = self::local_path_from_base_url( $src, $uploads['baseurl'], $uploads['basedir'] );
+			if ( $local_path ) {
+				return $local_path;
+			}
+		}
+
+		$parsed = parse_url( $src );
+		if ( empty( $parsed['scheme'] ) && ! empty( $parsed['path'] ) ) {
+			return $parsed['path'];
+		}
+
+		$home = parse_url( home_url( '/' ) );
+		if ( ! empty( $parsed['host'] ) && ! empty( $home['host'] ) && strtolower( $parsed['host'] ) === strtolower( $home['host'] ) && ! empty( $parsed['path'] ) ) {
+			return $parsed['path'];
+		}
+
+		return $src;
+	}
+
+	/**
+	 * Resolve an image URL under a known local URL base.
+	 *
+	 * @param string $src     Image source URL.
+	 * @param string $baseurl Public base URL.
+	 * @param string $basedir Local base directory.
+	 * @return string
+	 */
+	private static function local_path_from_base_url( $src, $baseurl, $basedir ) {
+		$src_parts  = parse_url( $src );
+		$base_parts = parse_url( $baseurl );
+
+		if ( empty( $src_parts['path'] ) || empty( $base_parts['path'] ) ) {
+			return '';
+		}
+
+		if ( ! empty( $src_parts['host'] ) || ! empty( $base_parts['host'] ) ) {
+			if ( empty( $src_parts['host'] ) || empty( $base_parts['host'] ) || strtolower( $src_parts['host'] ) !== strtolower( $base_parts['host'] ) ) {
+				return '';
+			}
+		}
+
+		$base_path = rtrim( $base_parts['path'], '/' ) . '/';
+		$src_path  = $src_parts['path'];
+		if ( 0 !== strpos( $src_path, $base_path ) ) {
+			return '';
+		}
+
+		$relative_path = ltrim( substr( $src_path, strlen( $base_path ) ), '/' );
+		$local_path    = rtrim( $basedir, '/' ) . '/' . $relative_path;
+
+		return file_exists( $local_path ) ? $local_path : '';
 	}
 
 	/**
