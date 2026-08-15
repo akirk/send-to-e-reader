@@ -75,7 +75,7 @@ class FileHelper {
     public static function getFileContents($source, $toTempFile = false) {
         $isExternal = false;
         $p = parse_url( $source );
-        if ( $p ) {
+        if ( isset( $p['host'] ) ) {
             switch ( strtolower( $p['host'] ) ) {
                 case 'archive.today':
                 case 'archive.is':

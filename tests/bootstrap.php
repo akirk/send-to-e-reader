@@ -376,6 +376,16 @@ namespace {
 		return 'https://example.com/wp-content/plugins/' . basename( dirname( $plugin ) ) . '/' . $path;
 	}
 
+	function wp_get_upload_dir() {
+		$basedir = isset( $GLOBALS['_test_upload_basedir'] ) ? $GLOBALS['_test_upload_basedir'] : sys_get_temp_dir() . '/uploads';
+		$baseurl = isset( $GLOBALS['_test_upload_baseurl'] ) ? $GLOBALS['_test_upload_baseurl'] : 'https://example.com/wp-content/uploads';
+
+		return array(
+			'basedir' => $basedir,
+			'baseurl' => $baseurl,
+		);
+	}
+
 	function get_the_time( $format = '', $post = null ) {
 		return date( $format ?: 'U' );
 	}

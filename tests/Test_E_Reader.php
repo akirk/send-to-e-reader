@@ -6,6 +6,7 @@
  */
 
 use PHPUnit\Framework\TestCase;
+use Send_To_E_Reader\Epub_Builder;
 use Send_To_E_Reader\E_Reader_Download;
 use Send_To_E_Reader\E_Reader_Kindle;
 use Send_To_E_Reader\E_Reader_Pocketbook;
@@ -18,6 +19,7 @@ class Test_E_Reader extends TestCase {
 
 	public function tearDown(): void {
 		remove_all_filters( 'friends_override_author_name' );
+		unset( $GLOBALS['_test_upload_basedir'], $GLOBALS['_test_upload_baseurl'] );
 		parent::tearDown();
 	}
 
@@ -182,6 +184,71 @@ class Test_E_Reader extends TestCase {
 
 		$this->assertSame( 'Zetaphor', $method->invoke( $ereader, $post ) );
 		$this->assertSame( 'Zetaphor', $post->author_name );
+	}
+
+	/**
+	 * Test same-site upload image URLs are embedded in generated ePubs.
+	 */
+	public function test_epub_builder_embeds_same_site_upload_images() {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive is required to inspect the generated ePub.' );
+		}
+
+		$upload_dir = sys_get_temp_dir() . '/send-to-e-reader-test-uploads';
+		if ( ! file_exists( $upload_dir ) ) {
+			mkdir( $upload_dir, 0777, true );
+		}
+
+		$image_path = $upload_dir . '/cover.svg';
+		file_put_contents(
+			$image_path,
+			'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="red"/></svg>'
+		);
+
+		$GLOBALS['_test_upload_basedir'] = $upload_dir;
+		$GLOBALS['_test_upload_baseurl'] = 'https://example.com/wp-content/uploads';
+
+		$content = Epub_Builder::build_content(
+			'Image Test',
+			'Test Author',
+			array(
+				array(
+					'title'    => 'Chapter',
+					'filename' => 'chapter.html',
+					'content'  => Epub_Builder::wrap_xhtml(
+						'Chapter',
+						'Test Author',
+						'<figure><img src="https://example.com/wp-content/uploads/cover.svg?ver=1" alt="Cover" /></figure>'
+					),
+				),
+			)
+		);
+
+		$path = tempnam( sys_get_temp_dir(), 'send-to-e-reader-image-epub-' );
+		file_put_contents( $path, $content );
+
+		$zip = new ZipArchive();
+		$this->assertTrue( $zip->open( $path ) );
+
+		$chapter = $zip->getFromName( 'OEBPS/chapter.html' );
+		$image_index = false;
+		for ( $i = 0; $i < $zip->numFiles; ++$i ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$name = $zip->getNameIndex( $i );
+			if ( false !== strpos( $name, 'cover.svg' ) ) {
+				$image_index = $i;
+				break;
+			}
+		}
+
+		$zip->close();
+		unlink( $path );
+		unlink( $image_path );
+		rmdir( $upload_dir );
+
+		$this->assertNotFalse( $chapter );
+		$this->assertNotFalse( $image_index, 'Expected the local upload image to be packaged in the EPUB.' );
+		$this->assertStringNotContainsString( 'https://example.com/wp-content/uploads/cover.svg', $chapter );
+		$this->assertStringContainsString( 'cover.svg', $chapter );
 	}
 
 	/**
