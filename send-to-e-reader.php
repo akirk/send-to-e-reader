@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin name: Send to E-Reader
+ * Plugin Name: Send to E-Reader
  * Plugin URI: https://github.com/akirk/send-to-e-reader
  * Version: 1.1.0
  * Author: Alex Kirk
