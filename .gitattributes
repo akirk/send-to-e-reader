@@ -2,6 +2,8 @@
 .git*	export-ignore
 .gitignore	export-ignore
 .claude	export-ignore
+.agents	export-ignore
+.codex	export-ignore
 .sass-cache	export-ignore
 bin	export-ignore
 comments.json	export-ignore
@@ -14,3 +16,6 @@ phpcs.xml	export-ignore
 sftp-config.json	export-ignore
 tests	export-ignore
 vendor	export-ignore
+
+# WordPress.org assets (deployed to the SVN assets/ directory, not shipped)
+.wordpress-org	export-ignore
