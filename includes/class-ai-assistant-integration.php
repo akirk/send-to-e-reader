@@ -156,7 +156,7 @@ class AI_Assistant_Integration {
 			$message_count = intval( $conversation['message_count'] );
 			$sentence      = sprintf(
 				/* translators: 1: Number of conversation messages, 2: message/messages. */
-				__( 'This conversation contains %d %s', 'send-to-e-reader' ),
+				__( 'This conversation contains %1$d %2$s', 'send-to-e-reader' ),
 				$message_count,
 				1 === $message_count ? __( 'message', 'send-to-e-reader' ) : __( 'messages', 'send-to-e-reader' )
 			);
@@ -285,7 +285,7 @@ class AI_Assistant_Integration {
 		libxml_use_internal_errors( $previous );
 
 		if ( ! $loaded ) {
-			return self::plain_text_to_xhtml( html_entity_decode( strip_tags( $html ), ENT_QUOTES, 'UTF-8' ) );
+			return self::plain_text_to_xhtml( html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES, 'UTF-8' ) );
 		}
 
 		$body = $document->getElementsByTagName( 'body' )->item( 0 );
@@ -426,7 +426,7 @@ class AI_Assistant_Integration {
 			return true;
 		}
 
-		$scheme = parse_url( $value, PHP_URL_SCHEME );
+		$scheme = wp_parse_url( $value, PHP_URL_SCHEME );
 		if ( ! $scheme ) {
 			return true;
 		}

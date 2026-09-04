@@ -368,6 +368,19 @@ namespace {
 		return 'https://example.com' . $path;
 	}
 
+	function wp_parse_url( $url, $component = -1 ) {
+		return parse_url( $url, $component );
+	}
+
+	function wp_strip_all_tags( $text, $remove_breaks = false ) {
+		$text = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $text );
+		$text = strip_tags( $text );
+		if ( $remove_breaks ) {
+			$text = preg_replace( '/[\\r\\n\\t ]+/', ' ', $text );
+		}
+		return trim( $text );
+	}
+
 	function admin_url( $path = '', $scheme = 'admin' ) {
 		return 'https://example.com/wp-admin/' . $path;
 	}

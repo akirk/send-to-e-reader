@@ -19,6 +19,9 @@ jobs:
           rsync -av --exclude='.git' \
                    --exclude='.github' \
                    --exclude='.claude' \
+                   --exclude='.agents' \
+                   --exclude='.codex' \
+                   --exclude='.wordpress-org' \
                    --exclude='node_modules' \
                    --exclude='vendor' \
                    --exclude='tests' \
