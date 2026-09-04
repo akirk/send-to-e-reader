@@ -59,7 +59,9 @@ class E_Reader_Download extends E_Reader {
 
 	public static function instantiate_from_field_data( $id, $data ) {
 		$class = get_called_class();
-		return new $class( $data['name'] );
+		$ereader = new $class( $data['name'] );
+		$ereader->set_id( $id );
+		return $ereader;
 	}
 
 	/**

@@ -13,7 +13,7 @@ Send posts to your e-reader as ePub files, by email or direct download. Works st
 
 ## Description
 
-[Try it in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fraw.githubusercontent.com%2Fakirk%2Fsend-to-e-reader%2Fmain%2Fblueprint.json)
+[Try it in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/akirk/send-to-e-reader/main/blueprint.json) · [Try it with demo data](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/akirk/send-to-e-reader/main/demo.json), which comes with a few posts and two e-readers already configured.
 
 Send to E-Reader turns one or more WordPress posts into an ePub file. You can download that file straight away, or have it mailed to the address your e-reader listens on, so the article shows up on the device without a cable.
 
@@ -21,7 +21,7 @@ See the post [Subscribing to RSS Feeds on your E-Reader using your own WordPress
 
 ### Where you use it
 
-- On the **Posts** screen, a *Send to E-Reader* row action sends a single post.
+- On the **Posts** screen, a *Send to E-Reader* row action sends a single post. With several e-readers configured, each one gets its own entry.
 - Select several posts and pick *Send to E-Reader* from the **Bulk actions** menu to bundle them into one multi-chapter ePub.
 - With the [Friends plugin](https://github.com/akirk/friends/) installed, the same actions appear on the posts of the feeds you follow, so you can move a batch of unread articles onto your e-reader in one go. The plugin remembers which posts it has already sent, so you can send just the new ones.
 - If the [AI Assistant plugin](https://github.com/akirk/ai-assistant) is active, conversations can be exported as ePub through its export menu.
@@ -35,7 +35,7 @@ You configure any number of e-readers on the plugin's *E-Readers* screen. Each o
 - **PocketBook** — sends to your PocketBook Cloud address (`@pbsync.com`).
 - **Download ePub** — no email at all; the file is offered as a download in the browser.
 
-Mail is sent through WordPress's own `wp_mail()`, so whatever SMTP setup the site already has is what gets used. Delivery addresses are stored per user, so every author on the site configures their own devices.
+Mail is sent through WordPress's own `wp_mail()`, so whatever SMTP setup the site already has is what gets used. The configured e-readers are stored site-wide: everyone who can reach the *E-Readers* screen works from the same list of devices. If more than one e-reader is active, the *Posts* screen offers one row action and one bulk action per device, so you pick where a post goes.
 
 ### The ePub it builds
 
@@ -78,11 +78,15 @@ Yes. Select them on the Posts screen and use the *Send to E-Reader* bulk action;
 
 ### Where are my e-reader addresses stored?
 
-With your user account, not site-wide. Each user configures their own devices and only sees their own.
+In a site option, not per user. The *E-Readers* screen requires the `edit_private_posts` capability, so editors and administrators share one list of devices. Sending a post additionally requires that you are allowed to read that post.
 
 ## Changelog
 
 ### 1.1.0
+- Fix saving the E-Readers screen deleting every configured e-reader
+- Keep e-reader ids stable so delivery settings survive an edit
+- Pick which e-reader to send to when several are configured
+- Only send posts the current user is allowed to read
 - Embed same-site images locally in the generated ePub
 - Export AI Assistant conversations as ePub
 - Reuse Static Archive HTML for ePub exports
