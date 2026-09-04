@@ -828,7 +828,9 @@ class Send_To_E_Reader {
 					continue;
 				}
 
-				$class = wp_unslash( $ereader_data['class'] );
+				// Already unslashed above; unslashing again would eat the
+				// namespace separator and no class would ever be found.
+				$class = $ereader_data['class'];
 				if ( ! $class || ! class_exists( $class ) || ! is_subclass_of( $class, 'Send_To_E_Reader\E_Reader' ) ) {
 					continue;
 				}

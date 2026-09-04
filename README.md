@@ -83,6 +83,8 @@ In a site option, not per user. The *E-Readers* screen requires the `edit_privat
 ## Changelog
 
 ### 1.1.0
+- Fix saving the E-Readers screen deleting every configured e-reader
+- Keep e-reader ids stable so delivery settings survive an edit
 - Pick which e-reader to send to when several are configured
 - Only send posts the current user is allowed to read
 - Embed same-site images locally in the generated ePub

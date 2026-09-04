@@ -71,7 +71,9 @@ class E_Reader_Generic_Email extends E_Reader {
 
 	public static function instantiate_from_field_data( $id, $data ) {
 		$class = get_called_class();
-		return new $class( $data['name'], $data['email'] );
+		$ereader = new $class( $data['name'], $data['email'] );
+		$ereader->set_id( $id );
+		return $ereader;
 	}
 
 	/**

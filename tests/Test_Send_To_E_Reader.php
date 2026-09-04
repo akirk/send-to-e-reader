@@ -61,6 +61,42 @@ class Test_Send_To_E_Reader extends TestCase {
 	}
 
 	/**
+	 * Test that an e-reader keeps its id when it is saved again.
+	 */
+	public function test_ereaders_keep_their_id_when_saved_again() {
+		$download = E_Reader_Download::instantiate_from_field_data( 'abcd1234', array( 'name' => 'Download ePub' ) );
+		$this->assertSame( 'abcd1234', $download->get_id() );
+
+		$email = E_Reader_Generic_Email::instantiate_from_field_data(
+			'ef567890',
+			array(
+				'name'  => 'Bedside reader',
+				'email' => 'bedside@example.com',
+			)
+		);
+		$this->assertSame( 'ef567890', $email->get_id() );
+	}
+
+	/**
+	 * Test that a newly added e-reader is given a fresh id.
+	 */
+	public function test_new_ereaders_get_a_generated_id() {
+		$download = E_Reader_Download::instantiate_from_field_data( 'new', array( 'name' => 'Download ePub' ) );
+		$this->assertNotSame( 'new', $download->get_id() );
+		$this->assertNotEmpty( $download->get_id() );
+
+		$email = E_Reader_Generic_Email::instantiate_from_field_data(
+			'new' . E_Reader_Generic_Email::class,
+			array(
+				'name'  => 'Bedside reader',
+				'email' => 'bedside@example.com',
+			)
+		);
+		$this->assertStringStartsNotWith( 'new', $email->get_id() );
+		$this->assertNotEmpty( $email->get_id() );
+	}
+
+	/**
 	 * Test that a single e-reader yields a single, unsuffixed bulk action.
 	 */
 	public function test_bulk_actions_offers_one_entry_for_a_single_ereader() {

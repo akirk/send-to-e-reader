@@ -30,6 +30,24 @@ abstract class E_Reader {
 	abstract public function send_posts( array $posts, $title = null, $author = null );
 
 	/**
+	 * Adopt the id an e-reader was stored under.
+	 *
+	 * Ids are generated once, on first use, and then kept: other settings
+	 * refer to an e-reader by its id, so handing out a fresh one every time
+	 * the settings are saved would quietly disconnect them.
+	 *
+	 * @param string $id The id the settings form supplied, or "new..." for an
+	 *                   e-reader that is being added.
+	 */
+	public function set_id( $id ) {
+		if ( ! is_string( $id ) || '' === $id || 'new' === substr( $id, 0, 3 ) ) {
+			return;
+		}
+
+		$this->id = $id;
+	}
+
+	/**
 	 * Get the template loader (Friends or fallback).
 	 *
 	 * @return object
