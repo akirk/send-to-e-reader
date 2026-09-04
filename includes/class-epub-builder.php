@@ -74,7 +74,8 @@ class Epub_Builder {
 		$content .= '<html xmlns="http://www.w3.org/1999/xhtml">' . PHP_EOL;
 		$content .= '<head>' . PHP_EOL;
 		$content .= '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />' . PHP_EOL;
-		$content .= '<link rel="stylesheet" type="text/css" href="style.css" />' . PHP_EOL;
+		// This is markup for an XHTML document inside a generated ePub file, not a WordPress page, so wp_enqueue_style() does not apply.
+		$content .= '<link rel="stylesheet" type="text/css" href="style.css" />' . PHP_EOL; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
 		$content .= '<title>' . self::escape_xml( $title ) . '</title>' . PHP_EOL;
 		$content .= '</head>' . PHP_EOL;
 		$content .= '<body>' . PHP_EOL;
@@ -284,12 +285,12 @@ class Epub_Builder {
 			}
 		}
 
-		$parsed = parse_url( $src );
+		$parsed = wp_parse_url( $src );
 		if ( empty( $parsed['scheme'] ) && ! empty( $parsed['path'] ) ) {
 			return $parsed['path'];
 		}
 
-		$home = parse_url( home_url( '/' ) );
+		$home = wp_parse_url( home_url( '/' ) );
 		if ( ! empty( $parsed['host'] ) && ! empty( $home['host'] ) && strtolower( $parsed['host'] ) === strtolower( $home['host'] ) && ! empty( $parsed['path'] ) ) {
 			return $parsed['path'];
 		}
@@ -306,8 +307,8 @@ class Epub_Builder {
 	 * @return string
 	 */
 	private static function local_path_from_base_url( $src, $baseurl, $basedir ) {
-		$src_parts  = parse_url( $src );
-		$base_parts = parse_url( $baseurl );
+		$src_parts  = wp_parse_url( $src );
+		$base_parts = wp_parse_url( $baseurl );
 
 		if ( empty( $src_parts['path'] ) || empty( $base_parts['path'] ) ) {
 			return '';

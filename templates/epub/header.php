@@ -14,7 +14,9 @@ echo '<', '?xml version="1.0" encoding="utf-8"?', '>', PHP_EOL;
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<?php // phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- This is an XHTML document inside a generated ePub file, not a WordPress page, so wp_enqueue_style() does not apply. ?>
 <link rel="stylesheet" type="text/css" href="style.css" />
+<?php // phpcs:enable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet ?>
 <title><?php echo esc_html( $args['title'] ); ?></title>
 </head>
 <body>
