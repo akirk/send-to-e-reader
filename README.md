@@ -13,7 +13,7 @@ Send posts to your e-reader as ePub files, by email or direct download. Works st
 
 ## Description
 
-[Try it in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fraw.githubusercontent.com%2Fakirk%2Fsend-to-e-reader%2Fmain%2Fblueprint.json)
+[Try it in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/akirk/send-to-e-reader/main/blueprint.json) · [Try it with demo data](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/akirk/send-to-e-reader/main/demo.json), which comes with a few posts and two e-readers already configured.
 
 Send to E-Reader turns one or more WordPress posts into an ePub file. You can download that file straight away, or have it mailed to the address your e-reader listens on, so the article shows up on the device without a cable.
 
