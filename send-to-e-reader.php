@@ -27,6 +27,7 @@ define( 'SEND_TO_E_READER_VERSION', '1.1.0' );
 require 'libs/autoload.php';
 require_once __DIR__ . '/includes/class-epub-builder.php';
 require_once __DIR__ . '/includes/class-ai-assistant-integration.php';
+require_once __DIR__ . '/includes/class-post-collection-integration.php';
 require_once __DIR__ . '/includes/class-send-to-e-reader.php';
 require_once __DIR__ . '/includes/class-e-reader.php';
 
@@ -56,6 +57,8 @@ function send_to_e_reader_register_ereaders( $send_to_e_reader ) {
 
 	require_once __DIR__ . '/includes/class-e-reader-download.php';
 	$send_to_e_reader->register_ereader( 'Send_To_E_Reader\E_Reader_Download' );
+
+	new Send_To_E_Reader\Post_Collection_Integration( $send_to_e_reader );
 }
 
 // Initialize with Friends plugin if available.
