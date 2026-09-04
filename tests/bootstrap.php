@@ -283,10 +283,14 @@ namespace {
 	}
 
 	function get_option( $option, $default = false ) {
+		if ( isset( $GLOBALS['send_to_e_reader_test_options'][ $option ] ) ) {
+			return $GLOBALS['send_to_e_reader_test_options'][ $option ];
+		}
 		return $default;
 	}
 
 	function update_option( $option, $value, $autoload = null ) {
+		$GLOBALS['send_to_e_reader_test_options'][ $option ] = $value;
 		return true;
 	}
 
@@ -347,7 +351,30 @@ namespace {
 	}
 
 	function current_user_can( $capability, ...$args ) {
-		return false;
+		if ( ! isset( $GLOBALS['send_to_e_reader_test_caps'] ) ) {
+			return false;
+		}
+		if ( is_callable( $GLOBALS['send_to_e_reader_test_caps'] ) ) {
+			return (bool) call_user_func_array( $GLOBALS['send_to_e_reader_test_caps'], array_merge( array( $capability ), $args ) );
+		}
+		return in_array( $capability, (array) $GLOBALS['send_to_e_reader_test_caps'], true );
+	}
+
+	function add_query_arg( ...$args ) {
+		if ( is_array( $args[0] ) ) {
+			$params = $args[0];
+			$url = isset( $args[1] ) ? $args[1] : '';
+		} else {
+			$params = array( $args[0] => $args[1] );
+			$url = isset( $args[2] ) ? $args[2] : '';
+		}
+
+		$query = array();
+		foreach ( $params as $key => $value ) {
+			$query[] = $key . '=' . rawurlencode( $value );
+		}
+
+		return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . implode( '&', $query );
 	}
 
 	function get_the_author_meta( $field = '', $user_id = false ) {
@@ -499,12 +526,15 @@ namespace {
 		public $post_content = '';
 		public $post_excerpt = '';
 		public $post_status = 'publish';
+		public $post_type = 'post';
 
 		public function __construct( $post = null ) {
 			if ( is_object( $post ) ) {
 				foreach ( get_object_vars( $post ) as $key => $value ) {
 					$this->$key = $value;
 				}
+			} elseif ( is_numeric( $post ) ) {
+				$this->ID = intval( $post );
 			}
 		}
 	}
@@ -512,6 +542,9 @@ namespace {
 	function get_post( $post = null ) {
 		if ( $post instanceof WP_Post ) {
 			return $post;
+		}
+		if ( is_numeric( $post ) && isset( $GLOBALS['send_to_e_reader_test_posts'][ intval( $post ) ] ) ) {
+			return $GLOBALS['send_to_e_reader_test_posts'][ intval( $post ) ];
 		}
 		return new WP_Post( $post );
 	}

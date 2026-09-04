@@ -22,7 +22,148 @@ class Test_Send_To_E_Reader extends TestCase {
 		remove_all_filters( 'send_to_e_reader_post_content' );
 		remove_all_filters( 'static_archive_post_types' );
 		remove_all_filters( 'static_archive_post_html' );
+		remove_all_filters( 'send_to_e_reader_user_can_send' );
+		unset( $GLOBALS['send_to_e_reader_test_options'] );
+		unset( $GLOBALS['send_to_e_reader_test_caps'] );
+		unset( $GLOBALS['send_to_e_reader_test_posts'] );
 		parent::tearDown();
+	}
+
+	/**
+	 * Store e-readers in the (stubbed) option the plugin reads them from.
+	 *
+	 * @param array $ereaders The e-readers to activate.
+	 * @return array The e-readers keyed by their id.
+	 */
+	private function activate_ereaders( array $ereaders ) {
+		$stored = array();
+		foreach ( $ereaders as $ereader ) {
+			$ereader->active = true;
+			$stored[ $ereader->get_id() ] = $ereader;
+		}
+		update_option( Send_To_E_Reader::EREADERS_OPTION, $stored );
+		return $stored;
+	}
+
+	/**
+	 * Register a post the stubbed get_post() can return.
+	 *
+	 * @param int    $id        The post id.
+	 * @param string $post_type The post type.
+	 * @return WP_Post The registered post.
+	 */
+	private function register_post( $id, $post_type = 'post' ) {
+		$post = new WP_Post();
+		$post->ID = $id;
+		$post->post_type = $post_type;
+		$GLOBALS['send_to_e_reader_test_posts'][ $id ] = $post;
+		return $post;
+	}
+
+	/**
+	 * Test that a single e-reader yields a single, unsuffixed bulk action.
+	 */
+	public function test_bulk_actions_offers_one_entry_for_a_single_ereader() {
+		$this->activate_ereaders( array( new E_Reader_Download( 'Download ePub' ) ) );
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		$actions = $send_to_e_reader->bulk_actions( array() );
+
+		$this->assertSame( array( 'send-to-e-reader' => 'Send to E-Reader' ), $actions );
+	}
+
+	/**
+	 * Test that every active e-reader gets its own bulk action.
+	 */
+	public function test_bulk_actions_offers_an_entry_per_ereader() {
+		$ereaders = $this->activate_ereaders(
+			array(
+				new E_Reader_Kindle( 'My Kindle', 'test@free.kindle.com' ),
+				new E_Reader_Download( 'Download ePub' ),
+			)
+		);
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		$actions = $send_to_e_reader->bulk_actions( array() );
+
+		$labels = array();
+		foreach ( $ereaders as $id => $ereader ) {
+			$this->assertArrayHasKey( 'send-to-e-reader-' . $id, $actions );
+			$labels[] = $actions[ 'send-to-e-reader-' . $id ];
+		}
+		$this->assertContains( 'Send to E-Reader: My Kindle', $labels );
+		$this->assertContains( 'Send to E-Reader: Download ePub', $labels );
+		$this->assertArrayNotHasKey( 'send-to-e-reader', $actions );
+	}
+
+	/**
+	 * Test that posts the user may not read are not sent.
+	 */
+	public function test_bulk_action_refuses_posts_the_user_cannot_read() {
+		$this->activate_ereaders( array( new E_Reader_Download( 'Download ePub' ) ) );
+		$this->register_post( 5 );
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		$redirect_to = $send_to_e_reader->handle_bulk_actions( 'edit.php', 'send-to-e-reader', array( 5 ) );
+
+		$this->assertSame( 'edit.php?send-to-e-reader=forbidden', $redirect_to );
+	}
+
+	/**
+	 * Test that a readable post passes the capability check.
+	 */
+	public function test_current_user_can_send_follows_the_read_post_capability() {
+		$post = $this->register_post( 5 );
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		$this->assertFalse( $send_to_e_reader->current_user_can_send( $post ) );
+
+		$GLOBALS['send_to_e_reader_test_caps'] = array( 'read_post' );
+		$this->assertTrue( $send_to_e_reader->current_user_can_send( $post ) );
+	}
+
+	/**
+	 * Test that the capability check can be overridden by a filter.
+	 */
+	public function test_current_user_can_send_is_filterable() {
+		$post = $this->register_post( 5 );
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		add_filter(
+			'send_to_e_reader_user_can_send',
+			function () {
+				return true;
+			}
+		);
+
+		$this->assertTrue( $send_to_e_reader->current_user_can_send( $post ) );
+	}
+
+	/**
+	 * Test that the row action is hidden from users who may not read the post.
+	 */
+	public function test_row_action_is_hidden_without_the_capability() {
+		$this->activate_ereaders( array( new E_Reader_Download( 'Download ePub' ) ) );
+		$post = $this->register_post( 5 );
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		$this->assertSame( array(), $send_to_e_reader->post_row_actions( array(), $post ) );
+	}
+
+	/**
+	 * Test that the row action carries the post type of the row it sits in.
+	 */
+	public function test_row_action_carries_the_post_type() {
+		$this->activate_ereaders( array( new E_Reader_Download( 'Download ePub' ) ) );
+		$post = $this->register_post( 5, 'book' );
+		$GLOBALS['send_to_e_reader_test_caps'] = array( 'read_post' );
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		$actions = $send_to_e_reader->post_row_actions( array(), $post );
+
+		$this->assertArrayHasKey( 'send-to-e-reader', $actions );
+		$this->assertStringContainsString( 'post_type=book', $actions['send-to-e-reader'] );
+		$this->assertStringContainsString( 'post[]=5', $actions['send-to-e-reader'] );
 	}
 
 	/**

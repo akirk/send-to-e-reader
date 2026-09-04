@@ -27,6 +27,7 @@ class Send_To_E_Reader {
 	 */
 	private $friends;
 
+	const ACTION = 'send-to-e-reader';
 	const POST_META = 'sent-to-ereader';
 	const EREADERS_OPTION = 'send-to-e-reader_readers';
 	const DOWNLOAD_PASSWORD_OPTION = 'send_to_e_reader_download_password';
@@ -672,7 +673,12 @@ class Send_To_E_Reader {
 			wp_send_json_error();
 			return;
 		}
-		delete_post_meta( intval( wp_unslash( $_POST['id'] ) ), self::POST_META );
+		$post_id = intval( wp_unslash( $_POST['id'] ) );
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error();
+			return;
+		}
+		delete_post_meta( $post_id, self::POST_META );
 		wp_send_json_success();
 	}
 
@@ -700,6 +706,15 @@ class Send_To_E_Reader {
 		if ( ! empty( $_POST['ids'] ) ) {
 			$posts = array_merge( $posts, array_map( 'get_post', array_map( 'intval', (array) wp_unslash( $_POST['ids'] ) ) ) );
 		}
+
+		$posts = array_values(
+			array_filter(
+				$posts,
+				function ( $post ) {
+					return $this->current_user_can_send( $post );
+				}
+			)
+		);
 
 		if ( empty( $posts ) ) {
 			wp_send_json_error( __( 'No posts could be found.', 'send-to-e-reader' ) );
@@ -1107,24 +1122,129 @@ class Send_To_E_Reader {
 		exit;
 	}
 
+	/**
+	 * Whether the current user may send a post to an e-reader.
+	 *
+	 * Sending hands out a copy of the post content, so the question is whether
+	 * the user is allowed to read the post in the first place.
+	 *
+	 * @param \WP_Post $post The post to be sent.
+	 * @return bool Whether the post may be sent.
+	 */
+	public function current_user_can_send( $post ) {
+		if ( ! $post instanceof \WP_Post ) {
+			return false;
+		}
+
+		return (bool) apply_filters( 'send_to_e_reader_user_can_send', current_user_can( 'read_post', $post->ID ), $post );
+	}
+
+	/**
+	 * Turn post ids into the posts the current user is allowed to send.
+	 *
+	 * @param array $post_ids The post ids to filter.
+	 * @return array The posts that may be sent, in the given order.
+	 */
+	protected function get_sendable_posts( $post_ids ) {
+		$posts = array();
+		foreach ( (array) $post_ids as $post_id ) {
+			$post = get_post( $post_id );
+			if ( ! $this->current_user_can_send( $post ) ) {
+				continue;
+			}
+			$posts[] = $post;
+		}
+
+		return $posts;
+	}
+
+	/**
+	 * Get the display name of an e-reader.
+	 *
+	 * @param E_Reader $ereader The e-reader.
+	 * @return string The name to show in the admin.
+	 */
+	protected function get_ereader_name( $ereader ) {
+		if ( method_exists( $ereader, 'get_name' ) ) {
+			$name = $ereader->get_name();
+			if ( $name ) {
+				return $name;
+			}
+		}
+
+		return __( 'E-Reader', 'send-to-e-reader' );
+	}
+
+	/**
+	 * Whether an admin action asks for posts to be sent to an e-reader.
+	 *
+	 * @param string $action The action name.
+	 * @return bool Whether this is one of our actions.
+	 */
+	protected function is_send_action( $action ) {
+		return self::ACTION === $action || 0 === strpos( $action, self::ACTION . '-' );
+	}
+
+	/**
+	 * Get the e-reader an admin action refers to.
+	 *
+	 * The action carries the e-reader id as a suffix when more than one
+	 * e-reader is active; without a suffix the first active one is used.
+	 *
+	 * @param string $action The action name.
+	 * @return E_Reader|null The e-reader, or null if it cannot be determined.
+	 */
+	protected function get_ereader_for_action( $action ) {
+		$ereaders = $this->get_active_ereaders();
+
+		if ( self::ACTION === $action ) {
+			return array_shift( $ereaders );
+		}
+
+		$id = substr( $action, strlen( self::ACTION ) + 1 );
+		if ( isset( $ereaders[ $id ] ) ) {
+			return $ereaders[ $id ];
+		}
+
+		return null;
+	}
+
 	public function bulk_actions( $actions ) {
-		$actions['send-to-e-reader'] = __( 'Send to E-Reader', 'send-to-e-reader' );
+		$ereaders = $this->get_active_ereaders();
+
+		// With a single e-reader there is nothing to choose, so keep one entry.
+		if ( count( $ereaders ) < 2 ) {
+			$actions[ self::ACTION ] = __( 'Send to E-Reader', 'send-to-e-reader' );
+			return $actions;
+		}
+
+		foreach ( $ereaders as $id => $ereader ) {
+			$actions[ self::ACTION . '-' . $id ] = sprintf(
+				/* translators: %s is the name of an e-reader, e.g. "Kindle". */
+				__( 'Send to E-Reader: %s', 'send-to-e-reader' ),
+				$this->get_ereader_name( $ereader )
+			);
+		}
+
 		return $actions;
 	}
 
 	public function handle_bulk_actions( $redirect_to, $doaction, $post_ids ) {
-		if ( 'send-to-e-reader' !== $doaction ) {
+		if ( ! $this->is_send_action( $doaction ) ) {
 			return $redirect_to;
 		}
 
-		$ereaders = $this->get_active_ereaders();
-		$ereader = array_shift( $ereaders );
+		$ereader = $this->get_ereader_for_action( $doaction );
 
 		if ( ! $ereader ) {
 			return add_query_arg( 'send-to-e-reader', 'no-ereader', $redirect_to );
 		}
 
-		$posts = array_map( 'get_post', $post_ids );
+		$posts = $this->get_sendable_posts( $post_ids );
+		if ( empty( $posts ) ) {
+			return add_query_arg( 'send-to-e-reader', 'forbidden', $redirect_to );
+		}
+
 		$result = $ereader->send_posts( $posts, false, false );
 
 		if ( ! $result ) {
@@ -1144,19 +1264,61 @@ class Send_To_E_Reader {
 	}
 
 	public function post_row_actions( $actions, $post ) {
-		$actions['send-to-e-reader'] = sprintf(
-			'<a href="%s">%s</a>',
-			add_query_arg(
-				array(
-					'action'   => 'send-to-e-reader',
-					'post[]'   => $post->ID,
-					'_wpnonce' => wp_create_nonce( 'bulk-posts' ),
-				),
-				'edit.php'
-			),
-			__( 'Send to E-Reader', 'send-to-e-reader' )
-		);
+		if ( ! $this->current_user_can_send( $post ) ) {
+			return $actions;
+		}
+
+		$ereaders = $this->get_active_ereaders();
+
+		if ( count( $ereaders ) < 2 ) {
+			$actions[ self::ACTION ] = $this->post_row_action_link( $post, self::ACTION, __( 'Send to E-Reader', 'send-to-e-reader' ) );
+			return $actions;
+		}
+
+		foreach ( $ereaders as $id => $ereader ) {
+			$action = self::ACTION . '-' . $id;
+			$actions[ $action ] = $this->post_row_action_link(
+				$post,
+				$action,
+				sprintf(
+					/* translators: %s is the name of an e-reader, e.g. "Kindle". */
+					__( 'Send to %s', 'send-to-e-reader' ),
+					$this->get_ereader_name( $ereader )
+				)
+			);
+		}
+
 		return $actions;
+	}
+
+	/**
+	 * Build a row action link that submits a single post to the bulk handler.
+	 *
+	 * The post type needs to travel with the request: edit.php falls back to
+	 * the "post" post type without it, which fires the bulk action filter of
+	 * the wrong screen and returns to the wrong list table.
+	 *
+	 * @param \WP_Post $post   The post the row belongs to.
+	 * @param string   $action The bulk action to trigger.
+	 * @param string   $label  The link text.
+	 * @return string The link HTML.
+	 */
+	protected function post_row_action_link( $post, $action, $label ) {
+		return sprintf(
+			'<a href="%s">%s</a>',
+			esc_url(
+				add_query_arg(
+					array(
+						'action'    => $action,
+						'post_type' => $post->post_type,
+						'post[]'    => $post->ID,
+						'_wpnonce'  => wp_create_nonce( 'bulk-posts' ),
+					),
+					admin_url( 'edit.php' )
+				)
+			),
+			esc_html( $label )
+		);
 	}
 
 	public function admin_notices() {
@@ -1165,6 +1327,12 @@ class Send_To_E_Reader {
 				?>
 				<div class="notice notice-success is-dismissible">
 					<p><?php esc_html_e( 'Posts sent to E-Reader.', 'send-to-e-reader' ); ?></p>
+				</div>
+				<?php
+			} elseif ( 'forbidden' === $_GET['send-to-e-reader'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				?>
+				<div class="notice notice-error is-dismissible">
+					<p><?php esc_html_e( 'You are not allowed to send these posts to an e-reader.', 'send-to-e-reader' ); ?></p>
 				</div>
 				<?php
 			} elseif ( 'no-ereader' === $_GET['send-to-e-reader'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
