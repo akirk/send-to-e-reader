@@ -2,16 +2,15 @@
 /**
  * Plugin Name: Send to E-Reader
  * Plugin URI: https://github.com/akirk/send-to-e-reader
+ * Description: Send posts to your e-reader as ePub files, by email or direct download. Works standalone or with the Friends plugin.
  * Version: 1.1.0
+ * Requires at least: 6.0
+ * Tested up to: 7.1
+ * Requires PHP: 7.4
  * Author: Alex Kirk
  * Author URI: https://alex.kirk.at/
- *
- * Description: Send posts to your e-reader. Works standalone or integrates with the Friends plugin.
- *
- * Requires at least: 6.0
- * Tested up to: 6.9
- * Requires PHP: 7.4
- * License: GPL2
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: send-to-e-reader
  *
  * @package Send_To_E_Reader
