@@ -41,6 +41,57 @@
 		<type>warning</type>
 	</rule>
 
+	<!-- The test bootstrap is one file of WordPress function and class stubs.
+	     One class per file, class doc comments and named namespace blocks do
+	     not apply to it, and its parameter names deliberately mirror the real
+	     WordPress signatures, reserved words and all. -->
+	<rule ref="Generic.Files.OneObjectStructurePerFile">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Squiz.Commenting.ClassComment.Missing">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Universal.Namespaces.DisallowCurlyBraceSyntax">
+		<exclude-pattern>tests/bootstrap.php</exclude-pattern>
+	</rule>
+	<rule ref="Universal.Namespaces.DisallowDeclarationWithoutName">
+		<exclude-pattern>tests/bootstrap.php</exclude-pattern>
+	</rule>
+	<rule ref="Universal.Namespaces.OneDeclarationPerFile">
+		<exclude-pattern>tests/bootstrap.php</exclude-pattern>
+	</rule>
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+		<exclude-pattern>tests/bootstrap.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.I18n">
+		<exclude-pattern>tests/bootstrap.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.DateTime.RestrictedFunctions">
+		<exclude-pattern>tests/bootstrap.php</exclude-pattern>
+	</rule>
+
+	<!-- PHPUnit discovers test classes by their own naming convention. -->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+
+	<!-- DOM node properties (childNodes, nodeName, nodeValue, tagName) are
+	     PHP's own API and cannot be renamed. -->
+	<rule ref="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase">
+		<exclude-pattern>includes/class-ai-assistant-integration.php</exclude-pattern>
+	</rule>
+
+	<!-- Mirrors get_template_part()'s own $echo parameter. -->
+	<rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames.echoFound">
+		<exclude-pattern>includes/class-e-reader.php</exclude-pattern>
+		<exclude-pattern>includes/class-send-to-e-reader.php</exclude-pattern>
+	</rule>
+
+	<!-- Templates are markup, not classes. -->
+	<rule ref="Squiz.Commenting.FileComment.Missing">
+		<exclude-pattern>templates/*</exclude-pattern>
+	</rule>
+
 	<!-- Check all PHP files in directory tree by default. -->
 	<arg name="extensions" value="php"/>
 	<file>.</file>

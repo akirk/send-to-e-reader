@@ -76,7 +76,7 @@ class Send_To_E_Reader {
 	private function get_fallback_template_loader() {
 		static $loader = null;
 		if ( null === $loader ) {
-			$loader = new class {
+			$loader = new class() {
 				private $paths = array();
 
 				public function __construct() {
@@ -789,7 +789,7 @@ class Send_To_E_Reader {
 		}
 	}
 
-	function ajax_unmark() {
+	public function ajax_unmark() {
 		check_ajax_referer( 'send-post-to-e-reader' );
 		if ( ! isset( $_POST['id'] ) ) {
 			wp_send_json_error();
@@ -804,7 +804,7 @@ class Send_To_E_Reader {
 		wp_send_json_success();
 	}
 
-	function ajax_send() {
+	public function ajax_send() {
 		check_ajax_referer( 'send-post-to-e-reader' );
 
 		$ereader_id = isset( $_POST['ereader'] ) ? sanitize_text_field( wp_unslash( $_POST['ereader'] ) ) : '';
@@ -879,8 +879,8 @@ class Send_To_E_Reader {
 				'title'  => __( 'Send to E-Reader', 'send-to-e-reader' ),
 				'menu'   => array(
 					__( 'How it works', 'send-to-e-reader' ) => 'send-to-e-reader',
-					__( 'E-Readers', 'send-to-e-reader' )    => 'send-to-e-reader-ereaders',
-					__( 'Settings' )                         => 'send-to-e-reader-settings', // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
+					__( 'E-Readers', 'send-to-e-reader' ) => 'send-to-e-reader-ereaders',
+					__( 'Settings' )                      => 'send-to-e-reader-settings', // phpcs:ignore WordPress.WP.I18n.MissingArgDomain
 				),
 			)
 		);
@@ -992,10 +992,10 @@ class Send_To_E_Reader {
 			'admin/configure-ereaders',
 			null,
 			array(
-				'ereaders'              => $ereaders,
-				'nonce_value'           => $nonce_value,
-				'friends'               => $friends,
-				'ereader_classes'       => $this->ereader_classes,
+				'ereaders'        => $ereaders,
+				'nonce_value'     => $nonce_value,
+				'friends'         => $friends,
+				'ereader_classes' => $this->ereader_classes,
 			)
 		);
 
@@ -1007,7 +1007,7 @@ class Send_To_E_Reader {
 	 *
 	 * @param      \Friends\User $friend  The friend.
 	 */
-	function users_edit_post_collection( \Friends\User $friend ) {
+	public function users_edit_post_collection( \Friends\User $friend ) {
 		$this->get_template_loader()->get_template_part(
 			'admin/automatic-sending',
 			null,
@@ -1022,7 +1022,7 @@ class Send_To_E_Reader {
 	 *
 	 * @param      \Friends\User $friend  The friend.
 	 */
-	function edit_friend_notifications( \Friends\User $friend ) {
+	public function edit_friend_notifications( \Friends\User $friend ) {
 		$this->get_template_loader()->get_template_part(
 			'admin/edit-notifications-ereader',
 			null,
@@ -1045,7 +1045,7 @@ class Send_To_E_Reader {
 	 *
 	 * @param      \Friends\User $friend  The friend.
 	 */
-	function edit_friend_notifications_submit( \Friends\User $friend ) {
+	public function edit_friend_notifications_submit( \Friends\User $friend ) {
 		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'friends-edit-notifications_' . $friend->user_login ) ) {
 			return;
 		}
@@ -1063,7 +1063,7 @@ class Send_To_E_Reader {
 	 *
 	 * @param      \WP_Post $post   The post.
 	 */
-	function post_notification( \WP_Post $post ) {
+	public function post_notification( \WP_Post $post ) {
 		if ( 'trash' === $post->post_status ) {
 			return;
 		}
@@ -1486,13 +1486,15 @@ class Send_To_E_Reader {
 			} elseif ( 'no-ereader' === $_GET['send-to-e-reader'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				?>
 				<div class="notice notice-error is-dismissible">
-					<p><?php
+					<p>
+					<?php
 						printf(
 							/* translators: %s is a link to the settings page */
 							esc_html__( 'No active E-Reader configured. Please configure one in the %s.', 'send-to-e-reader' ),
 							'<a href="' . esc_url( admin_url( 'admin.php?page=send-to-e-reader-ereaders' ) ) . '">' . esc_html__( 'E-Readers', 'send-to-e-reader' ) . '</a>'
 						);
-					?></p>
+					?>
+					</p>
 				</div>
 				<?php
 			}

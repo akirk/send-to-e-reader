@@ -30,6 +30,4 @@ class E_Reader_Kindle extends E_Reader_Generic_Email {
 			)
 		);
 	}
-
-
 }

@@ -59,7 +59,7 @@ abstract class E_Reader {
 
 		static $loader = null;
 		if ( null === $loader ) {
-			$loader = new class {
+			$loader = new class() {
 				private $paths = array();
 
 				public function __construct() {
@@ -113,7 +113,9 @@ abstract class E_Reader {
 		if ( class_exists( '\Friends\User' ) ) {
 			return \Friends\User::get_post_author( $post );
 		}
-		return get_userdata( $post->post_author ) ?: (object) array( 'display_name' => __( 'Unknown', 'send-to-e-reader' ) );
+		$author = get_userdata( $post->post_author );
+
+		return $author ? $author : (object) array( 'display_name' => __( 'Unknown', 'send-to-e-reader' ) );
 	}
 
 	/**

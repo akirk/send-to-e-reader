@@ -168,7 +168,7 @@ class Abilities {
 					'type'                 => 'object',
 					'required'             => array( 'post_ids' ),
 					'properties'           => array(
-						'post_ids'  => array(
+						'post_ids'   => array(
 							'type'        => 'array',
 							'description' => __( 'Post IDs to include in the EPUB, in reading order.', 'send-to-e-reader' ),
 							'items'       => array(
@@ -734,12 +734,12 @@ class Abilities {
 	 *
 	 * @param array  $input   Ability input.
 	 * @param string $key     Input key.
-	 * @param bool   $default Default value.
+	 * @param bool   $fallback Value to use when the key is absent.
 	 * @return bool
 	 */
-	private function input_bool( array $input, $key, $default = false ) {
+	private function input_bool( array $input, $key, $fallback = false ) {
 		if ( ! array_key_exists( $key, $input ) ) {
-			return $default;
+			return $fallback;
 		}
 
 		return filter_var( $input[ $key ], FILTER_VALIDATE_BOOLEAN );
