@@ -450,42 +450,6 @@ class Send_To_E_Reader {
 	}
 
 	/**
-	 * Send an AI Assistant conversation to a configured e-reader.
-	 *
-	 * The conversation is a post, so it goes through the regular e-reader
-	 * pipeline; AI_Assistant_Integration supplies its rendered messages as the
-	 * ePub content.
-	 *
-	 * @param string $ereader_id      The e-reader ID.
-	 * @param int    $conversation_id The AI Assistant conversation post ID.
-	 * @param string $title           Optional EPUB title.
-	 * @param string $author          Optional EPUB author.
-	 * @param bool   $mark_sent       Whether to mark the conversation as sent.
-	 * @return array|\WP_Error The send result, or an error.
-	 */
-	public function send_conversation_to_ereader( $ereader_id, $conversation_id, $title = null, $author = null, $mark_sent = true ) {
-		$conversation = AI_Assistant_Integration::get_conversation( $conversation_id );
-		if ( is_wp_error( $conversation ) ) {
-			return $conversation;
-		}
-
-		$post = get_post( isset( $conversation['id'] ) ? $conversation['id'] : $conversation_id );
-		if ( ! $post || empty( $post->ID ) ) {
-			return new \WP_Error( 'conversation-not-found', __( 'The conversation could not be loaded.', 'send-to-e-reader' ) );
-		}
-
-		$result = $this->send_posts_to_ereader( $ereader_id, array( $post ), $title, $author, $mark_sent );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
-		return array(
-			'conversation' => $conversation,
-			'result'       => $result,
-		);
-	}
-
-	/**
 	 * Mark posts as sent for Abilities API callbacks.
 	 *
 	 * @param array    $posts     Posts to mark.

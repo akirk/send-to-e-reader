@@ -18,106 +18,6 @@ class AI_Assistant_Integration {
 	 */
 	public static function register_hooks() {
 		add_filter( 'ai_assistant_conversation_export_formats', array( __CLASS__, 'register_export_formats' ), 100, 2 );
-		add_filter( 'send_to_e_reader_post_content', array( __CLASS__, 'filter_conversation_post_content' ), 10, 3 );
-	}
-
-	/**
-	 * The post type AI Assistant stores conversations in.
-	 *
-	 * @return string
-	 */
-	public static function get_conversation_post_type() {
-		if ( defined( '\\AI_Assistant\\Conversations::POST_TYPE' ) ) {
-			return \AI_Assistant\Conversations::POST_TYPE;
-		}
-
-		return 'ai_conversation';
-	}
-
-	/**
-	 * Whether AI Assistant can hand us conversations.
-	 *
-	 * @return bool
-	 */
-	public static function is_available() {
-		return (bool) self::get_conversations();
-	}
-
-	/**
-	 * Get AI Assistant's conversation store, if the plugin is active.
-	 *
-	 * @return object|null
-	 */
-	private static function get_conversations() {
-		if ( function_exists( 'ai_assistant' ) ) {
-			$assistant = ai_assistant();
-		} elseif ( class_exists( '\\AI_Assistant' ) && method_exists( '\\AI_Assistant', 'instance' ) ) {
-			$assistant = \AI_Assistant::instance();
-		} else {
-			return null;
-		}
-
-		if ( ! is_object( $assistant ) || ! method_exists( $assistant, 'conversations' ) ) {
-			return null;
-		}
-
-		$conversations = $assistant->conversations();
-		if ( ! is_object( $conversations ) || ! method_exists( $conversations, 'get_conversation_export_data' ) ) {
-			return null;
-		}
-
-		return $conversations;
-	}
-
-	/**
-	 * Get a conversation's export data from AI Assistant.
-	 *
-	 * AI Assistant does the per-conversation permission check.
-	 *
-	 * @param int $conversation_id The conversation post ID.
-	 * @return array|\WP_Error
-	 */
-	public static function get_conversation( $conversation_id ) {
-		$conversations = self::get_conversations();
-		if ( ! $conversations ) {
-			return new \WP_Error( 'ai-assistant-unavailable', __( 'The AI Assistant plugin is not available.', 'send-to-e-reader' ) );
-		}
-
-		$conversation = $conversations->get_conversation_export_data( $conversation_id );
-		if ( is_wp_error( $conversation ) ) {
-			return $conversation;
-		}
-
-		if ( ! is_array( $conversation ) ) {
-			return new \WP_Error( 'conversation-not-found', __( 'The conversation could not be loaded.', 'send-to-e-reader' ) );
-		}
-
-		return $conversation;
-	}
-
-	/**
-	 * Render a conversation post as its rendered messages rather than its
-	 * (empty) post content when it is built into an ePub.
-	 *
-	 * @param string   $content The post content.
-	 * @param \WP_Post $post    The post being rendered.
-	 * @param string   $format  The render format.
-	 * @return string
-	 */
-	public static function filter_conversation_post_content( $content, \WP_Post $post, $format ) {
-		if ( 'epub' !== $format || ! isset( $post->post_type ) || self::get_conversation_post_type() !== $post->post_type ) {
-			return $content;
-		}
-
-		$conversation = self::get_conversation( $post->ID );
-		if ( is_wp_error( $conversation ) ) {
-			return $content;
-		}
-
-		$messages = isset( $conversation['messages'] ) && is_array( $conversation['messages'] ) ? $conversation['messages'] : array();
-		$messages = apply_filters( 'ai_assistant_conversation_export_shrink_tool_calls', $messages, $conversation, array( 'format' => $format ) );
-
-		return self::conversation_body( $conversation, $messages, self::get_author_name( $conversation ) );
 	}
 
 	/**
@@ -186,32 +86,9 @@ class AI_Assistant_Integration {
 	 * @return array
 	 */
 	private static function conversation_to_chapters( array $conversation, array $messages, $author, $source ) {
-		$conversation_title  = self::single_line_text( ! empty( $conversation['title'] ) ? $conversation['title'] : __( 'Conversation', 'send-to-e-reader' ) );
-		$conversation_byline = self::build_byline( $author, self::format_conversation_date( isset( $conversation['created'] ) ? $conversation['created'] : '' ) );
-
-		return array(
-			array(
-				'title'      => $conversation_title,
-				'filename'   => 'conversation.html',
-				'content'    => Epub_Builder::wrap_xhtml( $conversation_title, $conversation_byline, self::conversation_body( $conversation, $messages, $author ), $source ),
-				'auto_split' => true,
-			),
-		);
-	}
-
-	/**
-	 * Render the body of a conversation as XHTML.
-	 *
-	 * This is the shared rendering used both by the conversation export format
-	 * and by sending a conversation to an e-reader.
-	 *
-	 * @param array  $conversation Conversation export data.
-	 * @param array  $messages     Conversation messages.
-	 * @param string $author       Export author.
-	 * @return string
-	 */
-	public static function conversation_body( array $conversation, array $messages, $author ) {
 		$include_tool_calls   = ! empty( $conversation['include_tool_calls'] );
+		$conversation_title   = self::single_line_text( ! empty( $conversation['title'] ) ? $conversation['title'] : __( 'Conversation', 'send-to-e-reader' ) );
+		$conversation_byline  = self::build_byline( $author, self::format_conversation_date( isset( $conversation['created'] ) ? $conversation['created'] : '' ) );
 		$conversation_summary = ! empty( $conversation['summary'] ) ? self::plain_text_to_xhtml( $conversation['summary'] ) : '';
 		$meta_sentence        = self::conversation_meta_sentence( $conversation );
 		$body                 = '';
@@ -256,7 +133,14 @@ class AI_Assistant_Integration {
 			$body .= '<p>' . self::escape_xml( __( 'No messages available.', 'send-to-e-reader' ) ) . '</p>' . PHP_EOL;
 		}
 
-		return $body;
+		return array(
+			array(
+				'title'      => $conversation_title,
+				'filename'   => 'conversation.html',
+				'content'    => Epub_Builder::wrap_xhtml( $conversation_title, $conversation_byline, $body, $source ),
+				'auto_split' => true,
+			),
+		);
 	}
 
 	/**
@@ -759,7 +643,7 @@ class AI_Assistant_Integration {
 	 * @param array $conversation Conversation export data.
 	 * @return string
 	 */
-	public static function get_author_name( array $conversation ) {
+	private static function get_author_name( array $conversation ) {
 		if ( ! empty( $conversation['author_id'] ) ) {
 			$user = get_userdata( intval( $conversation['author_id'] ) );
 			if ( $user && ! empty( $user->display_name ) ) {

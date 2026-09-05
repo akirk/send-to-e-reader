@@ -253,95 +253,6 @@ class Abilities {
 				),
 			)
 		);
-
-		if ( ! AI_Assistant_Integration::is_available() ) {
-			return;
-		}
-
-		$this->register_ability(
-			'send-to-e-reader/list-conversations',
-			array(
-				'label'               => __( 'List AI Assistant Conversations', 'send-to-e-reader' ),
-				'description'         => __( 'Lists the current user\'s AI Assistant conversations with IDs, titles, and dates so one can be sent to an e-reader.', 'send-to-e-reader' ),
-				'category'            => self::CATEGORY,
-				'input_schema'        => array(
-					'type'                 => 'object',
-					'properties'           => array(
-						'search' => array(
-							'type'        => 'string',
-							'description' => __( 'Optional search term for conversation titles.', 'send-to-e-reader' ),
-						),
-						'limit'  => array(
-							'type'        => 'integer',
-							'description' => __( 'Maximum number of conversations to return, from 1 to 100.', 'send-to-e-reader' ),
-							'default'     => 20,
-						),
-					),
-					'additionalProperties' => false,
-				),
-				'output_schema'       => self::conversations_output_schema(),
-				'execute_callback'    => array( $this, 'list_conversations' ),
-				'permission_callback' => array( $this, 'can_read' ),
-				'meta'                => array(
-					'annotations'  => array(
-						'instructions' => __( 'Use the returned id as conversation_id for send-to-e-reader/send-conversation.', 'send-to-e-reader' ),
-						'readonly'     => true,
-						'destructive'  => false,
-						'idempotent'   => true,
-					),
-					'show_in_rest' => true,
-				),
-			)
-		);
-
-		$this->register_ability(
-			'send-to-e-reader/send-conversation',
-			array(
-				'label'               => __( 'Send Conversation to E-Reader', 'send-to-e-reader' ),
-				'description'         => __( 'Builds an EPUB from an AI Assistant conversation and sends it to a configured e-reader or creates a download.', 'send-to-e-reader' ),
-				'category'            => self::CATEGORY,
-				'input_schema'        => array(
-					'type'                 => 'object',
-					'required'             => array( 'conversation_id' ),
-					'properties'           => array(
-						'conversation_id' => array(
-							'type'        => 'integer',
-							'description' => __( 'Conversation ID from send-to-e-reader/list-conversations.', 'send-to-e-reader' ),
-						),
-						'ereader_id'      => array(
-							'type'        => 'string',
-							'description' => __( 'E-reader ID from send-to-e-reader/list-ereaders. If omitted, the first active e-reader is used.', 'send-to-e-reader' ),
-						),
-						'title'           => array(
-							'type'        => 'string',
-							'description' => __( 'Optional EPUB title. Omit to use the conversation title.', 'send-to-e-reader' ),
-						),
-						'author'          => array(
-							'type'        => 'string',
-							'description' => __( 'Optional EPUB author. Omit to use the conversation author.', 'send-to-e-reader' ),
-						),
-						'mark_sent'       => array(
-							'type'        => 'boolean',
-							'description' => __( 'Whether to mark the conversation as sent after a successful send.', 'send-to-e-reader' ),
-							'default'     => true,
-						),
-					),
-					'additionalProperties' => false,
-				),
-				'output_schema'       => self::send_conversation_output_schema(),
-				'execute_callback'    => array( $this, 'send_conversation' ),
-				'permission_callback' => array( $this, 'can_send' ),
-				'meta'                => array(
-					'annotations'  => array(
-						'instructions' => __( 'Use this when the user wants to read a conversation on their e-reader. If download_url is present, include it as the EPUB download link.', 'send-to-e-reader' ),
-						'readonly'     => false,
-						'destructive'  => false,
-						'idempotent'   => false,
-					),
-					'show_in_rest' => true,
-				),
-			)
-		);
 	}
 
 	/**
@@ -355,7 +266,7 @@ class Abilities {
 			$domains = array();
 		}
 
-		$domains[ self::CATEGORY ] = 'Send to E-Reader, e-reader, ereader, EPUB, ePub, Kindle, Pocketbook, send posts to Kindle, download EPUB, sent articles, mark as new, send conversation to Kindle, read this chat on my e-reader';
+		$domains[ self::CATEGORY ] = 'Send to E-Reader, e-reader, ereader, EPUB, ePub, Kindle, Pocketbook, send posts to Kindle, download EPUB, sent articles, mark as new';
 
 		return $domains;
 	}
@@ -381,12 +292,6 @@ class Abilities {
 
 			case 'send-to-e-reader/send-posts':
 				return __( 'Tell the user which posts were sent and to which e-reader. If download_url is present, include it as an EPUB download link.', 'send-to-e-reader' );
-
-			case 'send-to-e-reader/list-conversations':
-				return __( 'Present conversation IDs with titles and dates. Ask which conversation to send if the user has not already said.', 'send-to-e-reader' );
-
-			case 'send-to-e-reader/send-conversation':
-				return __( 'Tell the user which conversation was sent and to which e-reader. If download_url is present, include it as an EPUB download link.', 'send-to-e-reader' );
 
 			case 'send-to-e-reader/mark-posts-sent':
 			case 'send-to-e-reader/mark-posts-new':
@@ -595,118 +500,6 @@ class Abilities {
 			'posts'        => $this->prepare_posts_data( $posts ),
 			'marked_count' => count( $posts ),
 			'status'       => 'new',
-		);
-	}
-
-	/**
-	 * List the current user's AI Assistant conversations.
-	 *
-	 * @param array|null $input Ability input.
-	 * @return array|\WP_Error
-	 */
-	public function list_conversations( $input = null ) {
-		if ( ! AI_Assistant_Integration::is_available() ) {
-			return new \WP_Error( 'ai-assistant-unavailable', __( 'The AI Assistant plugin is not available.', 'send-to-e-reader' ) );
-		}
-
-		$input      = $this->normalize_input( $input );
-		$query_args = array(
-			'post_type'           => AI_Assistant_Integration::get_conversation_post_type(),
-			'post_status'         => 'any',
-			'posts_per_page'      => $this->sanitize_limit( $input['limit'] ?? 20, 1, 100 ),
-			'orderby'             => 'modified',
-			'order'               => 'DESC',
-			'ignore_sticky_posts' => true,
-		);
-
-		if ( ! empty( $input['search'] ) ) {
-			$query_args['s'] = sanitize_text_field( $input['search'] );
-		}
-
-		$query         = new \WP_Query( $query_args );
-		$conversations = array();
-		foreach ( $query->get_posts() as $post ) {
-			// AI Assistant decides who may read a conversation.
-			$conversation = AI_Assistant_Integration::get_conversation( $post->ID );
-			if ( is_wp_error( $conversation ) ) {
-				continue;
-			}
-
-			$conversations[] = $this->prepare_conversation_data( $conversation, $post );
-		}
-
-		return array(
-			'conversations' => $conversations,
-			'count'         => count( $conversations ),
-		);
-	}
-
-	/**
-	 * Send an AI Assistant conversation to an e-reader.
-	 *
-	 * @param array|null $input Ability input.
-	 * @return array|\WP_Error
-	 */
-	public function send_conversation( $input = null ) {
-		$input           = $this->normalize_input( $input );
-		$conversation_id = isset( $input['conversation_id'] ) ? absint( $input['conversation_id'] ) : 0;
-		if ( ! $conversation_id ) {
-			return new \WP_Error( 'missing-conversation-id', __( 'A conversation ID is required.', 'send-to-e-reader' ) );
-		}
-
-		$ereader_data = $this->get_ereader_for_send( $input['ereader_id'] ?? '' );
-		if ( is_wp_error( $ereader_data ) ) {
-			return $ereader_data;
-		}
-
-		$title     = isset( $input['title'] ) ? sanitize_text_field( $input['title'] ) : false;
-		$author    = isset( $input['author'] ) ? sanitize_text_field( $input['author'] ) : false;
-		$mark_sent = $this->input_bool( $input, 'mark_sent', true );
-		$sent      = $this->plugin->send_conversation_to_ereader(
-			$ereader_data['id'],
-			$conversation_id,
-			'' === $title ? false : $title,
-			'' === $author ? false : $author,
-			$mark_sent
-		);
-
-		if ( is_wp_error( $sent ) ) {
-			return $sent;
-		}
-
-		$result   = $sent['result'];
-		$response = array(
-			'ereader'      => $this->prepare_ereader_data( $ereader_data['id'], $ereader_data['ereader'] ),
-			'conversation' => $this->prepare_conversation_data( $sent['conversation'], get_post( $conversation_id ) ),
-			'marked_sent'  => $mark_sent,
-			'result'       => $this->prepare_send_result( $result ),
-		);
-
-		if ( is_array( $result ) && ! empty( $result['url'] ) ) {
-			$response['download_url'] = esc_url_raw( $result['url'] );
-		}
-
-		return $response;
-	}
-
-	/**
-	 * Prepare a conversation record.
-	 *
-	 * @param array         $conversation Conversation export data.
-	 * @param \WP_Post|null $post         The conversation post, when available.
-	 * @return array
-	 */
-	private function prepare_conversation_data( array $conversation, $post = null ) {
-		$id      = isset( $conversation['id'] ) ? intval( $conversation['id'] ) : 0;
-		$sent_at = $id ? get_post_meta( $id, Send_To_E_Reader::POST_META, true ) : '';
-
-		return array(
-			'id'            => $id,
-			'title'         => isset( $conversation['title'] ) && '' !== $conversation['title'] ? html_entity_decode( wp_strip_all_tags( $conversation['title'] ), ENT_QUOTES, 'UTF-8' ) : __( 'Conversation', 'send-to-e-reader' ),
-			'message_count' => isset( $conversation['message_count'] ) ? intval( $conversation['message_count'] ) : 0,
-			'modified'      => $post instanceof \WP_Post && ! empty( $post->post_modified ) ? $post->post_modified : ( $conversation['modified'] ?? '' ),
-			'sent'          => ! empty( $sent_at ),
-			'sent_at'       => ! empty( $sent_at ) ? date_i18n( 'c', (int) $sent_at ) : '',
 		);
 	}
 
@@ -1064,64 +857,6 @@ class Abilities {
 				),
 				'marked_count' => array( 'type' => 'integer' ),
 				'status'       => array( 'type' => 'string' ),
-			),
-		);
-	}
-
-	/**
-	 * Output schema for listing conversations.
-	 *
-	 * @return array
-	 */
-	private static function conversations_output_schema() {
-		return array(
-			'type'       => 'object',
-			'properties' => array(
-				'conversations' => array(
-					'type'  => 'array',
-					'items' => self::conversation_schema(),
-				),
-				'count'         => array( 'type' => 'integer' ),
-			),
-		);
-	}
-
-	/**
-	 * Output schema for sending a conversation.
-	 *
-	 * @return array
-	 */
-	private static function send_conversation_output_schema() {
-		return array(
-			'type'       => 'object',
-			'properties' => array(
-				'ereader'      => self::ereader_schema(),
-				'conversation' => self::conversation_schema(),
-				'marked_sent'  => array( 'type' => 'boolean' ),
-				'download_url' => array( 'type' => 'string' ),
-				'result'       => array(
-					'type'                 => 'object',
-					'additionalProperties' => true,
-				),
-			),
-		);
-	}
-
-	/**
-	 * Schema for one conversation.
-	 *
-	 * @return array
-	 */
-	private static function conversation_schema() {
-		return array(
-			'type'       => 'object',
-			'properties' => array(
-				'id'            => array( 'type' => 'integer' ),
-				'title'         => array( 'type' => 'string' ),
-				'message_count' => array( 'type' => 'integer' ),
-				'modified'      => array( 'type' => 'string' ),
-				'sent'          => array( 'type' => 'boolean' ),
-				'sent_at'       => array( 'type' => 'string' ),
 			),
 		);
 	}
