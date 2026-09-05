@@ -3,7 +3,7 @@
  * Plugin Name: Send to E-Reader
  * Plugin URI: https://github.com/akirk/send-to-e-reader
  * Description: Send posts to your e-reader as ePub files, by email or direct download. Works standalone or with the Friends plugin.
- * Version: 1.1.0
+ * Version: 1.1.0+37f58e686146
  * Requires at least: 6.0
  * Tested up to: 7.1
  * Requires PHP: 7.4
