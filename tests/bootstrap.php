@@ -12,7 +12,7 @@ namespace Friends {
 		public $frontend;
 
 		public function __construct() {
-			$this->notifications = new class {
+			$this->notifications = new class() {
 				public function send_mail( $to, $subject, $message, $headers = array(), $attachments = array() ) {
 					return true;
 				}
@@ -20,7 +20,7 @@ namespace Friends {
 					return 'friends@example.com';
 				}
 			};
-			$this->frontend = new class {
+			$this->frontend = new class() {
 				public $author = null;
 			};
 		}
@@ -35,7 +35,7 @@ namespace Friends {
 		public static function template_loader() {
 			static $loader = null;
 			if ( null === $loader ) {
-				$loader = new class {
+				$loader = new class() {
 					public function get_template_part( $slug, $name = null, $args = array(), $echo = true ) {
 						return '';
 					}
@@ -99,7 +99,7 @@ namespace {
 		define( 'ABSPATH', '/tmp/' );
 	}
 
-	$GLOBALS['wpdb'] = new class {
+	$GLOBALS['wpdb'] = new class() {
 		public $postmeta = 'wp_postmeta';
 
 		public function update( $table, $data, $where ) {
@@ -214,7 +214,13 @@ namespace {
 		}
 	);
 
-	// Mock WordPress functions.
+	/**
+	 * Mock WordPress functions.
+	 *
+	 * @param string $text   The text to translate.
+	 * @param string $domain The text domain.
+	 * @return string
+	 */
 	function __( $text, $domain = 'default' ) {
 		return $text;
 	}
@@ -502,7 +508,7 @@ namespace {
 	}
 
 	function get_the_time( $format = '', $post = null ) {
-		return date( $format ?: 'U' );
+		return date( $format ? $format : 'U' );
 	}
 
 	function get_the_title( $post = 0 ) {
@@ -537,7 +543,7 @@ namespace {
 	}
 
 	function date_i18n( $format, $timestamp = false, $gmt = false ) {
-		return date( $format, $timestamp ?: time() );
+		return date( $format, $timestamp ? $timestamp : time() );
 	}
 
 	function wp_create_nonce( $action = -1 ) {
@@ -553,11 +559,21 @@ namespace {
 	}
 
 	function wp_send_json_success( $data = null, $status_code = null ) {
-		echo json_encode( array( 'success' => true, 'data' => $data ) );
+		echo json_encode(
+			array(
+				'success' => true,
+				'data'    => $data,
+			)
+		);
 	}
 
 	function wp_send_json_error( $data = null, $status_code = null ) {
-		echo json_encode( array( 'success' => false, 'data' => $data ) );
+		echo json_encode(
+			array(
+				'success' => false,
+				'data'    => $data,
+			)
+		);
 	}
 
 	function is_wp_error( $thing ) {

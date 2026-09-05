@@ -108,5 +108,4 @@ class E_Reader_Download extends E_Reader {
 
 		return $result;
 	}
-
 }

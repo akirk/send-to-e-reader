@@ -31,11 +31,11 @@ class AI_Assistant_Integration {
 		$formats = (array) $formats;
 
 		$epub_format = isset( $formats['epub'] ) ? $formats['epub'] : array(
-				'label'       => __( 'EPUB', 'send-to-e-reader' ),
-				'description' => __( 'E-reader friendly conversation export.', 'send-to-e-reader' ),
-				'extension'   => 'epub',
-				'mime'        => Epub_Builder::MIME,
-				'callback'    => array( __CLASS__, 'export_conversation_epub' ),
+			'label'       => __( 'EPUB', 'send-to-e-reader' ),
+			'description' => __( 'E-reader friendly conversation export.', 'send-to-e-reader' ),
+			'extension'   => 'epub',
+			'mime'        => Epub_Builder::MIME,
+			'callback'    => array( __CLASS__, 'export_conversation_epub' ),
 		);
 
 		unset( $formats['epub'] );

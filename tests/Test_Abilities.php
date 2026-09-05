@@ -185,7 +185,7 @@ class Test_Abilities extends TestCase {
 
 		$result = $this->abilities->send_posts(
 			array(
-				'post_ids'  => array( 21, 22 ),
+				'post_ids'   => array( 21, 22 ),
 				'ereader_id' => 'reader-1',
 				'title'      => 'Weekend Reading',
 				'author'     => 'Test Author',

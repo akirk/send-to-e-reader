@@ -1,0 +1,44 @@
+name: Coding Standards
+
+on:
+  push:
+    branches-ignore:
+      - 'dist/**'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coding-standards-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phpcs:
+    name: phpcs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+          coverage: none
+
+      # phpcs and the WordPress standards are dev dependencies, so this is a
+      # full install rather than the --no-dev one the release jobs use.
+      - name: Install dependencies
+        run: composer install --optimize-autoloader --no-interaction
+
+      # The same script developers run locally, so a green build here means
+      # composer check-cs is green on a clean checkout too.
+      - name: Run phpcs
+        run: composer check-cs

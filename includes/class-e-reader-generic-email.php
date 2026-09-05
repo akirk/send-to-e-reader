@@ -94,7 +94,11 @@ class E_Reader_Generic_Email extends E_Reader {
 
 		$this->send_email_with_attachment( $file );
 		wp_delete_file( $file );
-		return array( 'send-to-e-reader' => 'success', 'title' => $this->ebook_title, 'author' => $this->ebook_author );
+		return array(
+			'send-to-e-reader' => 'success',
+			'title'            => $this->ebook_title,
+			'author'           => $this->ebook_author,
+		);
 	}
 
 	/**
@@ -116,5 +120,4 @@ class E_Reader_Generic_Email extends E_Reader {
 			);
 		}
 	}
-
 }

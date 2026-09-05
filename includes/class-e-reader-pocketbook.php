@@ -30,5 +30,4 @@ class E_Reader_Pocketbook extends E_Reader_Generic_Email {
 			)
 		);
 	}
-
 }
