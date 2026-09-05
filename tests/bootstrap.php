@@ -326,6 +326,10 @@ namespace {
 		return preg_replace( '/[^a-z0-9-]/', '-', strtolower( $title ) );
 	}
 
+	function sanitize_key( $key ) {
+		return strtolower( preg_replace( '/[^a-zA-Z0-9_\-]/', '', (string) $key ) );
+	}
+
 	function sanitize_text_field( $str ) {
 		return trim( strip_tags( $str ) );
 	}
@@ -558,4 +562,5 @@ namespace {
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-generic-email.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-kindle.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-pocketbook.php';
+	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-post-collection-integration.php';
 }

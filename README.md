@@ -24,6 +24,7 @@ See the post [Subscribing to RSS Feeds on your E-Reader using your own WordPress
 - On the **Posts** screen, a *Send to E-Reader* row action sends a single post. With several e-readers configured, each one gets its own entry.
 - Select several posts and pick *Send to E-Reader* from the **Bulk actions** menu to bundle them into one multi-chapter ePub.
 - With the [Friends plugin](https://github.com/akirk/friends/) installed, the same actions appear on the posts of the feeds you follow, so you can move a batch of unread articles onto your e-reader in one go. The plugin remembers which posts it has already sent, so you can send just the new ones.
+- With the [Post Collection plugin](https://github.com/akirk/post-collection) installed, the same actions appear in its app: each collected article can be downloaded as ePub or sent to a device, and several can be ticked off and bundled into one multi-chapter file. There is deliberately no button for the whole backlog — a read-it-later archive runs into the thousands of unread articles, and every image in every chapter is fetched while the file is built, so ticking off what you want is what says how much work to do.
 - If the [AI Assistant plugin](https://github.com/akirk/ai-assistant) is active, conversations can be exported as ePub through its export menu.
 
 ### Delivery methods
@@ -41,7 +42,7 @@ Mail is sent through WordPress's own `wp_mail()`, so whatever SMTP setup the sit
 
 The ePub is generated on the fly from the post content: a title page, one chapter per post, and the post's byline and permalink. Images in the post body are embedded into the file, including images hosted on the same site, so the article still reads correctly offline. Content is converted to XHTML so the e-reader's renderer accepts it.
 
-ePubs can also be fetched over a special download URL: append a password-derived query parameter to any page of your site and it returns an ePub of all posts, the new ones, the last one, or a list to pick from. Some e-readers can open a URL directly, which makes this the fastest route onto the device.
+ePubs can also be fetched over a special download URL: append a password-derived query parameter to any page of your site and it returns an ePub of all posts, the new ones, the last one, or a list to pick from. Some e-readers can open a URL directly, which makes this the fastest route onto the device. On a Post Collection app URL the same parameter takes `unread` as well, so the e-reader can pull down the articles you have not read yet, for one collection or across all of them. Any selection can carry a number — `unread-10` takes the ten most recent — which is what to reach for when the backlog is long enough that one file would take a while. The URLs are listed on the *Settings* screen.
 
 Standalone, the plugin adds its screens under **Tools → Send to E-Reader** (and **Settings → Send to E-Reader**). With the Friends plugin active, they move under the Friends menu instead.
 
@@ -81,6 +82,9 @@ Yes. Select them on the Posts screen and use the *Send to E-Reader* bulk action;
 In a site option, not per user. The *E-Readers* screen requires the `edit_private_posts` capability, so editors and administrators share one list of devices. Sending a post additionally requires that you are allowed to read that post.
 
 ## Changelog
+
+### Unreleased
+- Add e-reader actions to the [Post Collection](https://github.com/akirk/post-collection) app: per-article and multi-select sending, a dialog for the unread articles, and download URLs that can carry how many articles to take
 
 ### 1.1.0
 - Fix saving the E-Readers screen deleting every configured e-reader

@@ -37,6 +37,14 @@ defined( 'ABSPATH' ) || exit;
 					<li><span class="description"><?php echo esc_html( $description ); ?></span> <span class="download-preview"><tt class="friends-sample-url"></tt><tt>?epub</tt><tt class="download_password_preview"><?php echo esc_html( $args['download_password'] ); ?></tt><tt>=<?php echo esc_html( $key ); ?></tt></span></li>
 						<?php endforeach; ?>
 					</ul>
+					<?php
+					/**
+					 * Let integrations document the download URLs of their own frontend.
+					 *
+					 * @param string $download_password The configured download password.
+					 */
+					do_action( 'send_to_e_reader_settings_download_urls', $args['download_password'] );
+					?>
 					<?php if ( ! empty( $args['all-friends'] ) && is_object( $args['all-friends'] ) ) : ?>
 					<p><select id="all-friends-preview">
 						<option value=""><?php esc_html_e( 'Preview URL for a friend', 'send-to-e-reader' ); ?></option>

@@ -327,7 +327,15 @@ class Send_To_E_Reader {
 		$this->ereader_classes[ $ereader_class ] = $ereader_class;
 	}
 
-	protected function get_active_ereaders() {
+	/**
+	 * Get the e-readers that are ready to receive posts.
+	 *
+	 * Public so that integrations in other plugins can offer one action per
+	 * configured device.
+	 *
+	 * @return E_Reader[] The active e-readers, keyed by their id.
+	 */
+	public function get_active_ereaders() {
 		return array_filter(
 			$this->get_ereaders(),
 			function ( $ereader ) {
@@ -345,7 +353,12 @@ class Send_To_E_Reader {
 		);
 	}
 
-	protected function get_ereaders() {
+	/**
+	 * Get all configured e-readers, active or not.
+	 *
+	 * @return E_Reader[] The e-readers, keyed by their id.
+	 */
+	public function get_ereaders() {
 		if ( is_null( $this->ereaders ) ) {
 			$this->ereaders = array();
 			foreach ( get_option( self::EREADERS_OPTION, array() ) as $id => $ereader ) {
@@ -969,8 +982,17 @@ class Send_To_E_Reader {
 	}
 
 
+	/**
+	 * Get the query parameter that triggers an ePub download.
+	 *
+	 * @return string The parameter name, password included.
+	 */
+	public function get_download_url_var() {
+		return 'epub' . get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) );
+	}
+
 	public function enable_download_via_url( $viewable ) {
-		$ereader_url_var = 'epub' . get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) );
+		$ereader_url_var = $this->get_download_url_var();
 		if ( ! isset( $_GET[ $ereader_url_var ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public download URL with password in parameter name.
 			return $viewable;
 		}
@@ -997,6 +1019,21 @@ class Send_To_E_Reader {
 
 	public function download_via_url( $template ) {
 		if ( ! $this->enable_download_via_url( false ) ) {
+			return $template;
+		}
+
+		/**
+		 * Let an integration answer the download request itself.
+		 *
+		 * The posts to put in the ePub are taken from the main query here, which
+		 * is not what a plugin with its own frontend wants: it hooks this filter
+		 * to keep this handler out of the way and serves the request from its own
+		 * list of posts instead.
+		 *
+		 * @param bool   $skip     Whether to leave this request alone.
+		 * @param string $template The template that would be rendered.
+		 */
+		if ( apply_filters( 'send_to_e_reader_skip_download_via_url', false, $template ) ) {
 			return $template;
 		}
 
