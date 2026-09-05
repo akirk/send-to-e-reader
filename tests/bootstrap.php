@@ -117,9 +117,48 @@ namespace {
 		require_once dirname( __DIR__ ) . '/libs/grandt/phpepub/src/lib.uuid.php';
 	}
 
+	if ( ! class_exists( 'UUID', false ) ) {
+		require_once dirname( __DIR__ ) . '/libs/grandt/phpepub/src/lib.uuid.php';
+	}
+
+	spl_autoload_register(
+		function ( $class ) {
+			$classmap = array(
+				'com\\grandt\\BinString'       => dirname( __DIR__ ) . '/libs/grandt/binstring/BinString.php',
+				'com\\grandt\\BinStringStatic' => dirname( __DIR__ ) . '/libs/grandt/binstring/BinStringStatic.php',
+			);
+
+			if ( isset( $classmap[ $class ] ) && file_exists( $classmap[ $class ] ) ) {
+				require_once $classmap[ $class ];
+				return;
+			}
+
+			$prefix = 'PHPePub\\';
+			if ( 0 !== strpos( $class, $prefix ) ) {
+				return;
+			}
+
+			$relative = str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) );
+			$file = dirname( __DIR__ ) . '/libs/grandt/phpepub/src/PHPePub/' . $relative . '.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+			}
+		}
+	);
+
 	// The checked-in vendor tree used by these tests can omit the runtime phpzip package.
 	spl_autoload_register(
 		function ( $class ) {
+			$zipmerge_prefix = 'ZipMerge\\Zip\\';
+			if ( 0 === strpos( $class, $zipmerge_prefix ) ) {
+				$relative = str_replace( '\\', '/', substr( $class, strlen( $zipmerge_prefix ) ) );
+				$file = dirname( __DIR__ ) . '/libs/grandt/phpzipmerge/src/ZipMerge/Zip/' . $relative . '.php';
+				if ( file_exists( $file ) ) {
+					require_once $file;
+				}
+				return;
+			}
+
 			$prefix = 'PHPZip\\Zip\\';
 			if ( 0 !== strpos( $class, $prefix ) ) {
 				return;
@@ -307,14 +346,20 @@ namespace {
 	}
 
 	function get_post_meta( $post_id, $key = '', $single = false ) {
+		if ( isset( $GLOBALS['send_to_e_reader_test_post_meta'][ $post_id ][ $key ] ) ) {
+			$values = (array) $GLOBALS['send_to_e_reader_test_post_meta'][ $post_id ][ $key ];
+			return $single ? end( $values ) : $values;
+		}
 		return $single ? '' : array();
 	}
 
 	function update_post_meta( $post_id, $meta_key, $meta_value, $prev_value = '' ) {
+		$GLOBALS['send_to_e_reader_test_post_meta'][ $post_id ][ $meta_key ] = array( $meta_value );
 		return true;
 	}
 
 	function delete_post_meta( $post_id, $meta_key, $meta_value = '' ) {
+		unset( $GLOBALS['send_to_e_reader_test_post_meta'][ $post_id ][ $meta_key ] );
 		return true;
 	}
 
@@ -348,6 +393,32 @@ namespace {
 
 	function wp_unslash( $value ) {
 		return is_string( $value ) ? stripslashes( $value ) : $value;
+	}
+
+	function esc_url_raw( $url, $protocols = null ) {
+		return (string) $url;
+	}
+
+	function absint( $maybeint ) {
+		return abs( intval( $maybeint ) );
+	}
+
+	function wp_register_ability_category( $slug, $args = array() ) {
+		$GLOBALS['send_to_e_reader_test_ability_categories'][ $slug ] = $args;
+		return true;
+	}
+
+	function wp_get_ability_category( $slug ) {
+		return isset( $GLOBALS['send_to_e_reader_test_ability_categories'][ $slug ] ) ? $GLOBALS['send_to_e_reader_test_ability_categories'][ $slug ] : null;
+	}
+
+	function wp_register_ability( $name, $args = array() ) {
+		$GLOBALS['send_to_e_reader_test_abilities'][ $name ] = $args;
+		return true;
+	}
+
+	function wp_get_ability( $name ) {
+		return isset( $GLOBALS['send_to_e_reader_test_abilities'][ $name ] ) ? $GLOBALS['send_to_e_reader_test_abilities'][ $name ] : null;
 	}
 
 	function is_user_logged_in() {
@@ -457,6 +528,10 @@ namespace {
 		return get_the_permalink( $post );
 	}
 
+	function get_edit_post_link( $id = 0, $context = 'display' ) {
+		return admin_url( 'post.php?post=' . intval( $id ) . '&action=edit' );
+	}
+
 	function get_post_format( $post = null ) {
 		return false;
 	}
@@ -508,6 +583,10 @@ namespace {
 			}
 			return $this->errors[ $code ][0] ?? '';
 		}
+
+		public function get_error_code() {
+			return array_key_first( $this->errors ) ?? '';
+		}
 	}
 
 	class WP_Query {
@@ -516,6 +595,33 @@ namespace {
 
 		public function __construct( $query = '' ) {
 			$this->query_vars = is_array( $query ) ? $query : array();
+			$this->posts = isset( $GLOBALS['send_to_e_reader_test_query_posts'] ) ? $GLOBALS['send_to_e_reader_test_query_posts'] : array_values( $GLOBALS['send_to_e_reader_test_posts'] ?? array() );
+
+			if ( ! empty( $this->query_vars['post__in'] ) ) {
+				$post_ids = array_map( 'intval', (array) $this->query_vars['post__in'] );
+				$this->posts = array_values(
+					array_filter(
+						$this->posts,
+						function ( $post ) use ( $post_ids ) {
+							return in_array( (int) $post->ID, $post_ids, true );
+						}
+					)
+				);
+			}
+
+			if ( ! empty( $this->query_vars['meta_query'][0]['key'] ) ) {
+				$key = $this->query_vars['meta_query'][0]['key'];
+				$compare = $this->query_vars['meta_query'][0]['compare'] ?? '';
+				$this->posts = array_values(
+					array_filter(
+						$this->posts,
+						function ( $post ) use ( $key, $compare ) {
+							$has_meta = '' !== get_post_meta( $post->ID, $key, true );
+							return 'EXISTS' === $compare ? $has_meta : ! $has_meta;
+						}
+					)
+				);
+			}
 		}
 
 		public function get_posts() {
@@ -558,6 +664,7 @@ namespace {
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-ai-assistant-integration.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-send-to-e-reader.php';
+	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-abilities.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-download.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-generic-email.php';
 	require_once FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'includes/class-e-reader-kindle.php';

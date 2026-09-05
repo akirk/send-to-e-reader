@@ -43,6 +43,7 @@ class Send_To_E_Reader {
 
 	private $ereaders = null;
 	private $ereader_classes = array();
+	private $abilities = null;
 
 	private $download_request = false;
 
@@ -128,6 +129,9 @@ class Send_To_E_Reader {
 		$this->friends = $friends;
 		$this->maybe_migrate_options();
 		$this->register_hooks();
+		if ( class_exists( __NAMESPACE__ . '\Abilities' ) ) {
+			$this->abilities = new Abilities( $this );
+		}
 	}
 
 
@@ -403,6 +407,81 @@ class Send_To_E_Reader {
 		return $this->ereaders;
 	}
 
+	/**
+	 * Get configured e-readers for Abilities API callbacks.
+	 *
+	 * @return array
+	 */
+	public function get_ereaders_for_abilities() {
+		return $this->get_ereaders();
+	}
+
+	/**
+	 * Send posts to a configured e-reader for Abilities API callbacks.
+	 *
+	 * @param string $ereader_id The e-reader ID.
+	 * @param array  $posts      Posts to send.
+	 * @param string $title      Optional EPUB title.
+	 * @param string $author     Optional EPUB author.
+	 * @param bool   $mark_sent  Whether to mark posts as sent.
+	 * @return array|\WP_Error
+	 */
+	public function send_posts_to_ereader( $ereader_id, array $posts, $title = null, $author = null, $mark_sent = true ) {
+		$ereaders = $this->get_ereaders();
+		if ( ! isset( $ereaders[ $ereader_id ] ) ) {
+			return new \WP_Error( 'invalid-ereader', __( 'E-Reader not configured', 'send-to-e-reader' ) );
+		}
+
+		$ereader = $ereaders[ $ereader_id ];
+		$result  = $ereader->send_posts( $posts, $title, $author );
+		if ( ! $result || is_wp_error( $result ) ) {
+			return is_wp_error( $result ) ? $result : new \WP_Error( 'send-failed', __( 'The EPUB could not be sent.', 'send-to-e-reader' ) );
+		}
+
+		if ( $mark_sent ) {
+			$this->mark_posts_sent_for_abilities( $posts );
+		}
+
+		if ( $result instanceof E_Reader ) {
+			$this->update_ereader( $ereader_id, $result );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Mark posts as sent for Abilities API callbacks.
+	 *
+	 * @param array    $posts     Posts to mark.
+	 * @param int|null $timestamp Optional sent timestamp.
+	 */
+	public function mark_posts_sent_for_abilities( array $posts, $timestamp = null ) {
+		if ( null === $timestamp ) {
+			$timestamp = time();
+		}
+
+		foreach ( $posts as $post ) {
+			$post = get_post( $post );
+			if ( $post && ! empty( $post->ID ) ) {
+				update_post_meta( $post->ID, self::POST_META, $timestamp );
+			}
+		}
+	}
+
+	/**
+	 * Mark posts as new for Abilities API callbacks.
+	 *
+	 * @param array $posts Posts to mark.
+	 */
+	public function mark_posts_new_for_abilities( array $posts ) {
+		foreach ( $posts as $post ) {
+			$post = get_post( $post );
+			if ( $post && ! empty( $post->ID ) ) {
+				delete_post_meta( $post->ID, self::POST_META );
+			}
+		}
+	}
+
 	protected function update_ereaders( $ereaders ) {
 		$this->ereaders = $ereaders;
 		return update_option( self::EREADERS_OPTION, $ereaders );
@@ -613,14 +692,44 @@ class Send_To_E_Reader {
 			array_merge(
 				$query_vars,
 				array(
-					'nopaging'     => true,
-					'meta_key'     => self::POST_META,
-					'meta_compare' => 'NOT EXISTS',
+					'nopaging'   => true,
+					'meta_query' => self::get_sent_status_meta_query( 'unsent' ),
 				)
 			)
 		);
 
 		return $query->get_posts();
+	}
+
+	/**
+	 * Get the meta query that selects posts by their e-reader sent status.
+	 *
+	 * This is the single definition of what counts as sent or unsent, shared
+	 * by the unsent post query and the Abilities API.
+	 *
+	 * @param string $sent_status One of sent, unsent or any.
+	 * @return array A meta query, empty when no filtering is needed.
+	 */
+	public static function get_sent_status_meta_query( $sent_status ) {
+		if ( 'sent' === $sent_status ) {
+			return array(
+				array(
+					'key'     => self::POST_META,
+					'compare' => 'EXISTS',
+				),
+			);
+		}
+
+		if ( 'unsent' === $sent_status ) {
+			return array(
+				array(
+					'key'     => self::POST_META,
+					'compare' => 'NOT EXISTS',
+				),
+			);
+		}
+
+		return array();
 	}
 
 	public function entry_dropdown_menu() {
