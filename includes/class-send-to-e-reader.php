@@ -450,6 +450,42 @@ class Send_To_E_Reader {
 	}
 
 	/**
+	 * Send an AI Assistant conversation to a configured e-reader.
+	 *
+	 * The conversation is a post, so it goes through the regular e-reader
+	 * pipeline; AI_Assistant_Integration supplies its rendered messages as the
+	 * ePub content.
+	 *
+	 * @param string $ereader_id      The e-reader ID.
+	 * @param int    $conversation_id The AI Assistant conversation post ID.
+	 * @param string $title           Optional EPUB title.
+	 * @param string $author          Optional EPUB author.
+	 * @param bool   $mark_sent       Whether to mark the conversation as sent.
+	 * @return array|\WP_Error The send result, or an error.
+	 */
+	public function send_conversation_to_ereader( $ereader_id, $conversation_id, $title = null, $author = null, $mark_sent = true ) {
+		$conversation = AI_Assistant_Integration::get_conversation( $conversation_id );
+		if ( is_wp_error( $conversation ) ) {
+			return $conversation;
+		}
+
+		$post = get_post( isset( $conversation['id'] ) ? $conversation['id'] : $conversation_id );
+		if ( ! $post || empty( $post->ID ) ) {
+			return new \WP_Error( 'conversation-not-found', __( 'The conversation could not be loaded.', 'send-to-e-reader' ) );
+		}
+
+		$result = $this->send_posts_to_ereader( $ereader_id, array( $post ), $title, $author, $mark_sent );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return array(
+			'conversation' => $conversation,
+			'result'       => $result,
+		);
+	}
+
+	/**
 	 * Mark posts as sent for Abilities API callbacks.
 	 *
 	 * @param array    $posts     Posts to mark.
@@ -692,14 +728,44 @@ class Send_To_E_Reader {
 			array_merge(
 				$query_vars,
 				array(
-					'nopaging'     => true,
-					'meta_key'     => self::POST_META,
-					'meta_compare' => 'NOT EXISTS',
+					'nopaging'   => true,
+					'meta_query' => self::get_sent_status_meta_query( 'unsent' ),
 				)
 			)
 		);
 
 		return $query->get_posts();
+	}
+
+	/**
+	 * Get the meta query that selects posts by their e-reader sent status.
+	 *
+	 * This is the single definition of what counts as sent or unsent, shared
+	 * by the unsent post query and the Abilities API.
+	 *
+	 * @param string $sent_status One of sent, unsent or any.
+	 * @return array A meta query, empty when no filtering is needed.
+	 */
+	public static function get_sent_status_meta_query( $sent_status ) {
+		if ( 'sent' === $sent_status ) {
+			return array(
+				array(
+					'key'     => self::POST_META,
+					'compare' => 'EXISTS',
+				),
+			);
+		}
+
+		if ( 'unsent' === $sent_status ) {
+			return array(
+				array(
+					'key'     => self::POST_META,
+					'compare' => 'NOT EXISTS',
+				),
+			);
+		}
+
+		return array();
 	}
 
 	public function entry_dropdown_menu() {

@@ -583,6 +583,10 @@ namespace {
 			}
 			return $this->errors[ $code ][0] ?? '';
 		}
+
+		public function get_error_code() {
+			return array_key_first( $this->errors ) ?? '';
+		}
 	}
 
 	class WP_Query {
@@ -653,6 +657,45 @@ namespace {
 			return $GLOBALS['send_to_e_reader_test_posts'][ intval( $post ) ];
 		}
 		return new WP_Post( $post );
+	}
+
+	/**
+	 * Stub of the AI Assistant conversation store.
+	 */
+	class Send_To_E_Reader_Test_Conversations {
+		const POST_TYPE = 'ai_conversation';
+
+		public function get_conversation_export_data( $conversation_id ) {
+			$conversation_id = intval( $conversation_id );
+			if ( empty( $GLOBALS['send_to_e_reader_test_conversations'][ $conversation_id ] ) ) {
+				return new WP_Error( 'conversation_not_found', 'Conversation not found' );
+			}
+
+			return $GLOBALS['send_to_e_reader_test_conversations'][ $conversation_id ];
+		}
+	}
+
+	/**
+	 * Stub of the AI Assistant plugin singleton.
+	 */
+	class AI_Assistant {
+		private static $instance = null;
+
+		public static function instance() {
+			if ( null === self::$instance ) {
+				self::$instance = new self();
+			}
+
+			return self::$instance;
+		}
+
+		public function conversations() {
+			return new Send_To_E_Reader_Test_Conversations();
+		}
+	}
+
+	function ai_assistant() {
+		return AI_Assistant::instance();
 	}
 
 	// Load the plugin files.

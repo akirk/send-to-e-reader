@@ -27,6 +27,44 @@ class Test_AI_Assistant_Integration extends TestCase {
 	}
 
 	/**
+	 * Test that a conversation post renders its messages as ePub content.
+	 */
+	public function test_filters_conversation_post_content_for_epub() {
+		$GLOBALS['send_to_e_reader_test_conversations'][81] = array(
+			'id'            => 81,
+			'title'         => 'Ebook formatting',
+			'summary'       => 'How to get chapters right.',
+			'message_count' => 1,
+			'author_id'     => 1,
+			'created'       => '2026-05-13 10:00:00',
+			'messages'      => array(
+				array(
+					'role'    => 'user',
+					'content' => 'Split long chapters automatically.',
+				),
+			),
+		);
+
+		$post = new WP_Post();
+		$post->ID = 81;
+		$post->post_type = 'ai_conversation';
+		$post->post_title = 'Ebook formatting';
+		$post->post_content = '';
+
+		$content = AI_Assistant_Integration::filter_conversation_post_content( '', $post, 'epub' );
+
+		$this->assertStringContainsString( 'How to get chapters right.', $content );
+		$this->assertStringContainsString( 'Split long chapters automatically.', $content );
+
+		// Other post types and formats are left alone.
+		$other = new WP_Post();
+		$other->ID = 82;
+		$other->post_type = 'post';
+		$this->assertSame( 'original', AI_Assistant_Integration::filter_conversation_post_content( 'original', $other, 'epub' ) );
+		$this->assertSame( 'original', AI_Assistant_Integration::filter_conversation_post_content( 'original', $post, 'html' ) );
+	}
+
+	/**
 	 * Test that a conversation can be exported as an EPUB binary.
 	 */
 	public function test_exports_conversation_epub() {

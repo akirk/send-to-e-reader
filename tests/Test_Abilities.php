@@ -76,7 +76,8 @@ class Test_Abilities extends TestCase {
 		$GLOBALS['send_to_e_reader_test_query_posts'] = array();
 		$GLOBALS['send_to_e_reader_test_abilities'] = array();
 		$GLOBALS['send_to_e_reader_test_ability_categories'] = array();
-		$GLOBALS['send_to_e_reader_test_caps'] = array();
+		$GLOBALS['send_to_e_reader_test_caps'] = array( 'read_post', 'edit_private_posts' );
+		$GLOBALS['send_to_e_reader_test_conversations'] = array();
 
 		$this->plugin = new Send_To_E_Reader( null );
 		$this->abilities = new Abilities( $this->plugin );
@@ -90,6 +91,7 @@ class Test_Abilities extends TestCase {
 		$GLOBALS['send_to_e_reader_test_abilities'] = array();
 		$GLOBALS['send_to_e_reader_test_ability_categories'] = array();
 		$GLOBALS['send_to_e_reader_test_caps'] = array();
+		$GLOBALS['send_to_e_reader_test_conversations'] = array();
 
 		parent::tearDown();
 	}
@@ -223,18 +225,177 @@ class Test_Abilities extends TestCase {
 	}
 
 	/**
+	 * Test that posts the user may not send are refused.
+	 */
+	public function test_send_posts_refuses_posts_the_user_cannot_send() {
+		$reader = new Send_To_E_Reader_Test_Ability_E_Reader( 'reader-1', 'Reading Device' );
+		$reader->active = true;
+		$GLOBALS['send_to_e_reader_test_options'][ Send_To_E_Reader::EREADERS_OPTION ] = array(
+			'reader-1' => $reader,
+		);
+		$GLOBALS['send_to_e_reader_test_posts'] = array(
+			41 => $this->create_post( 41, 'Private Article' ),
+		);
+
+		add_filter(
+			'send_to_e_reader_user_can_send',
+			function ( $can_send, $post ) {
+				return 41 === $post->ID ? false : $can_send;
+			},
+			10,
+			2
+		);
+
+		$result = $this->abilities->send_posts(
+			array(
+				'post_ids'   => array( 41 ),
+				'ereader_id' => 'reader-1',
+			)
+		);
+
+		$this->assertInstanceOf( 'WP_Error', $result );
+		$this->assertSame( 'cannot-send-post', $result->get_error_code() );
+		$this->assertSame( array(), $reader->last_posts );
+		$this->assertSame( '', get_post_meta( 41, Send_To_E_Reader::POST_META, true ) );
+	}
+
+	/**
+	 * Test that listing posts hides posts the user may not send.
+	 */
+	public function test_list_posts_hides_posts_the_user_cannot_send() {
+		$visible = $this->create_post( 51, 'Visible Article' );
+		$hidden = $this->create_post( 52, 'Hidden Article' );
+		$GLOBALS['send_to_e_reader_test_posts'] = array(
+			51 => $visible,
+			52 => $hidden,
+		);
+		$GLOBALS['send_to_e_reader_test_query_posts'] = array( $visible, $hidden );
+
+		add_filter(
+			'send_to_e_reader_user_can_send',
+			function ( $can_send, $post ) {
+				return 52 === $post->ID ? false : $can_send;
+			},
+			10,
+			2
+		);
+
+		$result = $this->abilities->list_posts( array( 'sent_status' => 'any' ) );
+
+		$this->assertSame( 1, $result['count'] );
+		$this->assertSame( 51, $result['posts'][0]['id'] );
+	}
+
+	/**
+	 * Test that the conversation abilities are registered when AI Assistant is present.
+	 */
+	public function test_registers_conversation_abilities() {
+		$this->abilities->register_abilities();
+
+		$this->assertArrayHasKey( 'send-to-e-reader/list-conversations', $GLOBALS['send_to_e_reader_test_abilities'] );
+		$this->assertArrayHasKey( 'send-to-e-reader/send-conversation', $GLOBALS['send_to_e_reader_test_abilities'] );
+
+		$instructions = $this->abilities->ai_assistant_ability_instructions( '', 'send-to-e-reader/send-conversation', array(), array() );
+		$this->assertStringContainsString( 'download_url', $instructions );
+	}
+
+	/**
+	 * Test listing conversations.
+	 */
+	public function test_list_conversations_returns_readable_conversations() {
+		$readable = $this->create_post( 61, 'Talking About Books', 'ai_conversation' );
+		$denied = $this->create_post( 62, 'Someone Else', 'ai_conversation' );
+		$GLOBALS['send_to_e_reader_test_posts'] = array(
+			61 => $readable,
+			62 => $denied,
+		);
+		$GLOBALS['send_to_e_reader_test_query_posts'] = array( $readable, $denied );
+		$GLOBALS['send_to_e_reader_test_conversations'][61] = array(
+			'id'            => 61,
+			'title'         => 'Talking About Books',
+			'message_count' => 4,
+			'messages'      => array(),
+		);
+
+		$result = $this->abilities->list_conversations( array() );
+
+		$this->assertSame( 1, $result['count'] );
+		$this->assertSame( 61, $result['conversations'][0]['id'] );
+		$this->assertSame( 'Talking About Books', $result['conversations'][0]['title'] );
+		$this->assertSame( 4, $result['conversations'][0]['message_count'] );
+		$this->assertFalse( $result['conversations'][0]['sent'] );
+	}
+
+	/**
+	 * Test sending a conversation to an e-reader.
+	 */
+	public function test_send_conversation_uses_configured_ereader() {
+		$reader = new Send_To_E_Reader_Test_Ability_E_Reader( 'reader-1', 'Reading Device' );
+		$reader->active = true;
+		$GLOBALS['send_to_e_reader_test_options'][ Send_To_E_Reader::EREADERS_OPTION ] = array(
+			'reader-1' => $reader,
+		);
+		$GLOBALS['send_to_e_reader_test_posts'] = array(
+			71 => $this->create_post( 71, 'Chat About Ebooks', 'ai_conversation' ),
+		);
+		$GLOBALS['send_to_e_reader_test_conversations'][71] = array(
+			'id'            => 71,
+			'title'         => 'Chat About Ebooks',
+			'message_count' => 2,
+			'messages'      => array(),
+		);
+
+		$result = $this->abilities->send_conversation(
+			array(
+				'conversation_id' => 71,
+				'ereader_id'      => 'reader-1',
+			)
+		);
+
+		$this->assertSame( 71, $result['conversation']['id'] );
+		$this->assertSame( 'Chat About Ebooks', $result['conversation']['title'] );
+		$this->assertTrue( $result['marked_sent'] );
+		$this->assertSame( 'Reading Device', $result['ereader']['name'] );
+		$this->assertSame( 'https://example.com/uploads/book.epub', $result['download_url'] );
+		$this->assertSame( 71, $reader->last_posts[0]->ID );
+		$this->assertNotEmpty( get_post_meta( 71, Send_To_E_Reader::POST_META, true ) );
+	}
+
+	/**
+	 * Test that an unknown conversation is refused.
+	 */
+	public function test_send_conversation_refuses_unknown_conversation() {
+		$reader = new Send_To_E_Reader_Test_Ability_E_Reader( 'reader-1', 'Reading Device' );
+		$reader->active = true;
+		$GLOBALS['send_to_e_reader_test_options'][ Send_To_E_Reader::EREADERS_OPTION ] = array(
+			'reader-1' => $reader,
+		);
+
+		$result = $this->abilities->send_conversation(
+			array(
+				'conversation_id' => 999,
+				'ereader_id'      => 'reader-1',
+			)
+		);
+
+		$this->assertInstanceOf( 'WP_Error', $result );
+		$this->assertSame( array(), $reader->last_posts );
+	}
+
+	/**
 	 * Create a test post.
 	 *
-	 * @param int    $id    Post ID.
-	 * @param string $title Post title.
+	 * @param int    $id        Post ID.
+	 * @param string $title     Post title.
+	 * @param string $post_type Post type.
 	 * @return WP_Post
 	 */
-	private function create_post( $id, $title ) {
+	private function create_post( $id, $title, $post_type = 'post' ) {
 		$post = new WP_Post();
 		$post->ID = $id;
 		$post->post_title = $title;
 		$post->post_author = 1;
-		$post->post_type = 'post';
+		$post->post_type = $post_type;
 		$post->post_status = 'publish';
 
 		return $post;
