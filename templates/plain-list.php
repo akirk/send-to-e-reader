@@ -7,9 +7,17 @@
 
 defined( 'ABSPATH' ) || exit;
 
+wp_enqueue_script(
+	'send-to-e-reader-plain-list',
+	plugins_url( 'plain-list.js', dirname( __DIR__ ) . '/send-to-e-reader.php' ),
+	array(),
+	filemtime( dirname( __DIR__ ) . '/plain-list.js' ),
+	array( 'strategy' => 'defer' )
+);
+
 ?>
 <html><head><title><?php echo esc_html( $args['title'] ); ?></title>
-<script src="<?php echo esc_url( plugins_url( 'plain-list.js', dirname( __DIR__ ) . '/send-to-e-reader.php' ) ); ?>" defer></script>
+<?php wp_print_scripts( 'send-to-e-reader-plain-list' ); ?>
 </head>
 <body>
 	<form>
