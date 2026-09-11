@@ -1,56 +1,56 @@
 {
-	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
-	"meta": {
-		"title": "Send to E-Reader",
-		"description": "Send posts to your e-reader. Works standalone or integrates with the Friends plugin.",
-		"author": "Alex Kirk",
-		"categories": [
-			"Apps",
-			"Publishing"
-		]
-	},
-	"landingPage": "/wp-admin/tools.php?page=send-to-e-reader",
-	"login": true,
-	"steps": [
-		{
-			"step": "installPlugin",
-			"pluginData": {
-				"resource": "git:directory",
-				"url": "https://github.com/akirk/send-to-e-reader",
-				"ref": "main",
-				"refType": "branch"
-			},
-			"options": {
-				"activate": false,
-				"targetFolderName": "send-to-e-reader"
-			}
-		},
-		{
-			"step": "installPlugin",
-			"pluginData": {
-				"resource": "git:directory",
-				"url": "https://github.com/akirk/wp-app",
-				"ref": "main",
-				"refType": "branch",
-				"path": "src"
-			},
-			"options": {
-				"activate": false,
-				"targetFolderName": "send-to-e-reader/vendor/akirk/wp-app"
-			}
-		},
-		{
-			"step": "mkdir",
-			"path": "wordpress/wp-content/plugins/send-to-e-reader/vendor"
-		},
-		{
-			"step": "writeFile",
-			"path": "/wordpress/wp-content/plugins/send-to-e-reader/vendor/autoload.php",
-			"data": "<?php\nrequire_once __DIR__ . '/akirk/wp-app/functions.php';\nspl_autoload_register( static function ( $class ) {\n\t$map = [\n\t\t'WpApp\\\\BaseApp' => 'abstract-baseapp.php',\n\t\t'WpApp\\\\BaseStorage' => 'BaseStorage.php',\n\t\t'WpApp\\\\Masterbar' => 'class-masterbar.php',\n\t\t'WpApp\\\\Openstation' => 'class-openstation.php',\n\t\t'WpApp\\\\Pwa' => 'class-pwa.php',\n\t\t'WpApp\\\\Registry' => 'class-registry.php',\n\t\t'WpApp\\\\Router' => 'class-router.php',\n\t\t'WpApp\\\\Settings' => 'class-settings.php',\n\t\t'WpApp\\\\WpApp' => 'class-wpapp.php',\n\t\t'WpApp\\\\Rest\\\\Access' => 'rest/class-access.php',\n\t\t'WpApp\\\\Rest\\\\Private_Posts_Controller' => 'rest/class-private-posts-controller.php',\n\t\t'WpApp\\\\Rest\\\\Private_Terms_Controller' => 'rest/class-private-terms-controller.php',\n\t];\n\tif ( isset( $map[ $class ] ) ) {\n\t\trequire_once __DIR__ . '/akirk/wp-app/' . $map[ $class ];\n\t}\n} );\n"
-		},
-		{
-			"step": "activatePlugin",
-			"pluginPath": "send-to-e-reader/send-to-e-reader.php"
-		}
-	]
+    "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+    "meta": {
+        "title": "Send to E-Reader",
+        "description": "Send posts to your e-reader. Works standalone or integrates with the Friends plugin.",
+        "author": "Alex Kirk",
+        "categories": [
+            "Apps",
+            "Publishing"
+        ]
+    },
+    "landingPage": "/wp-admin/tools.php?page=send-to-e-reader",
+    "login": true,
+    "steps": [
+        {
+            "step": "installPlugin",
+            "pluginData": {
+                "resource": "git:directory",
+                "url": "https://github.com/akirk/send-to-e-reader",
+                "ref": "dist/pr-40",
+                "refType": "branch"
+            },
+            "options": {
+                "activate": false,
+                "targetFolderName": "send-to-e-reader"
+            }
+        },
+        {
+            "step": "installPlugin",
+            "pluginData": {
+                "resource": "git:directory",
+                "url": "https://github.com/akirk/wp-app",
+                "ref": "dist/pr-40",
+                "refType": "branch",
+                "path": "src"
+            },
+            "options": {
+                "activate": false,
+                "targetFolderName": "send-to-e-reader/vendor/akirk/wp-app"
+            }
+        },
+        {
+            "step": "mkdir",
+            "path": "wordpress/wp-content/plugins/send-to-e-reader/vendor"
+        },
+        {
+            "step": "writeFile",
+            "path": "/wordpress/wp-content/plugins/send-to-e-reader/vendor/autoload.php",
+            "data": "<?php\nrequire_once __DIR__ . '/akirk/wp-app/functions.php';\nspl_autoload_register( static function ( $class ) {\n\t$map = [\n\t\t'WpApp\\\\BaseApp' => 'abstract-baseapp.php',\n\t\t'WpApp\\\\BaseStorage' => 'BaseStorage.php',\n\t\t'WpApp\\\\Masterbar' => 'class-masterbar.php',\n\t\t'WpApp\\\\Openstation' => 'class-openstation.php',\n\t\t'WpApp\\\\Pwa' => 'class-pwa.php',\n\t\t'WpApp\\\\Registry' => 'class-registry.php',\n\t\t'WpApp\\\\Router' => 'class-router.php',\n\t\t'WpApp\\\\Settings' => 'class-settings.php',\n\t\t'WpApp\\\\WpApp' => 'class-wpapp.php',\n\t\t'WpApp\\\\Rest\\\\Access' => 'rest/class-access.php',\n\t\t'WpApp\\\\Rest\\\\Private_Posts_Controller' => 'rest/class-private-posts-controller.php',\n\t\t'WpApp\\\\Rest\\\\Private_Terms_Controller' => 'rest/class-private-terms-controller.php',\n\t];\n\tif ( isset( $map[ $class ] ) ) {\n\t\trequire_once __DIR__ . '/akirk/wp-app/' . $map[ $class ];\n\t}\n} );\n"
+        },
+        {
+            "step": "activatePlugin",
+            "pluginPath": "send-to-e-reader/send-to-e-reader.php"
+        }
+    ]
 }
