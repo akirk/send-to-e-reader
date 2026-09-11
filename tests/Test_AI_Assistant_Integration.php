@@ -23,7 +23,7 @@ class Test_AI_Assistant_Integration extends TestCase {
 		$this->assertSame( 'EPUB', $formats['epub']['label'] );
 		$this->assertSame( 'epub', $formats['epub']['extension'] );
 		$this->assertSame( 'application/epub+zip', $formats['epub']['mime'] );
-		$this->assertIsCallable( $formats['epub']['callback'] );
+		$this->assertArrayNotHasKey( 'callback', $formats['epub'] );
 	}
 
 	/**
@@ -33,6 +33,7 @@ class Test_AI_Assistant_Integration extends TestCase {
 		$format = AI_Assistant_Integration::register_export_formats( array() )['epub'];
 
 		$result = AI_Assistant_Integration::export_conversation_epub(
+			null,
 			array(
 				'id'                 => 123,
 				'title'              => 'Homepage copy edits',
@@ -108,6 +109,7 @@ class Test_AI_Assistant_Integration extends TestCase {
 		$format = AI_Assistant_Integration::register_export_formats( array() )['epub'];
 
 		$result = AI_Assistant_Integration::export_conversation_epub(
+			null,
 			array(
 				'id'                 => 456,
 				'title'              => 'Formatted answer',

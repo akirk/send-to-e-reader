@@ -18,6 +18,7 @@ class AI_Assistant_Integration {
 	 */
 	public static function register_hooks() {
 		add_filter( 'ai_assistant_conversation_export_formats', array( __CLASS__, 'register_export_formats' ), 100, 2 );
+		add_filter( 'ai_assistant_conversation_export_epub', array( __CLASS__, 'export_conversation_epub' ), 10, 3 );
 	}
 
 	/**
@@ -35,7 +36,6 @@ class AI_Assistant_Integration {
 			'description' => __( 'E-reader friendly conversation export.', 'send-to-e-reader' ),
 			'extension'   => 'epub',
 			'mime'        => Epub_Builder::MIME,
-			'callback'    => array( __CLASS__, 'export_conversation_epub' ),
 		);
 
 		unset( $formats['epub'] );
@@ -47,11 +47,16 @@ class AI_Assistant_Integration {
 	/**
 	 * Export an AI Assistant conversation as an ePub.
 	 *
+	 * @param mixed $result       Existing export result.
 	 * @param array $conversation Conversation export data.
 	 * @param array $format       Export format definition.
 	 * @return array
 	 */
-	public static function export_conversation_epub( array $conversation, array $format ) {
+	public static function export_conversation_epub( $result, array $conversation, array $format ) {
+		if ( null !== $result ) {
+			return $result;
+		}
+
 		$messages = isset( $conversation['messages'] ) && is_array( $conversation['messages'] ) ? $conversation['messages'] : array();
 		$messages = apply_filters( 'ai_assistant_conversation_export_shrink_tool_calls', $messages, $conversation, $format );
 		$title    = self::single_line_text( ! empty( $conversation['title'] ) ? $conversation['title'] : __( 'Conversation', 'send-to-e-reader' ) );
