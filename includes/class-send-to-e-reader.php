@@ -1125,6 +1125,7 @@ class Send_To_E_Reader {
 					'all',
 					'last',
 					'list',
+					'compact',
 				),
 				true
 			)
@@ -1157,7 +1158,7 @@ class Send_To_E_Reader {
 			return $template;
 		}
 
-		if ( 'list' === $this->download_request ) {
+		if ( in_array( $this->download_request, array( 'list', 'compact' ), true ) ) {
 			$unsent = array();
 			foreach ( $this->get_unsent_posts() as $post ) {
 				if ( in_array( get_post_format( $post ), array( 'video' ), true ) ) {
@@ -1196,6 +1197,7 @@ class Send_To_E_Reader {
 					'unsent'    => $unsent,
 					'posts'     => $posts,
 					'inputname' => 'epub' . get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) ),
+					'compact'   => 'compact' === $this->download_request,
 				)
 			);
 			exit;

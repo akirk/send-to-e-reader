@@ -26,6 +26,9 @@ $get_post_display_date = static function ( $post ) use ( $date_format ) {
 
 $selected_count = count( $args['unsent'] );
 $total_count    = count( $args['posts'] );
+$compact        = ! empty( $args['compact'] );
+$list_url       = add_query_arg( $args['inputname'], 'list' );
+$compact_url    = add_query_arg( $args['inputname'], 'compact' );
 
 wp_enqueue_script(
 	'send-to-e-reader-plain-list',
@@ -95,7 +98,8 @@ wp_enqueue_script(
 	}
 
 	.header-controls,
-	.list-actions {
+	.list-actions,
+	.view-switcher {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px;
@@ -160,6 +164,48 @@ wp_enqueue_script(
 		overflow-wrap: anywhere;
 	}
 
+	.view-switcher {
+		color: #5d646d;
+		font-size: .92rem;
+		margin-bottom: 14px;
+	}
+
+	.view-switcher [aria-current="page"] {
+		color: #1f2328;
+		font-weight: 700;
+		text-decoration: none;
+	}
+
+	.plain-list-compact .post-list {
+		gap: 6px;
+	}
+
+	.plain-list-compact .post-item {
+		border-radius: 6px;
+		gap: 8px;
+		padding: 8px 10px;
+	}
+
+	.plain-list-compact .post-title {
+		display: inline;
+		font-size: .98rem;
+		margin: 0;
+	}
+
+	.plain-list-compact .post-meta {
+		display: inline;
+		margin-left: 6px;
+	}
+
+	.plain-list-compact .post-summary,
+	.plain-list-compact .post-url {
+		display: none;
+	}
+
+	.plain-list-compact .item-actions {
+		margin-top: 3px;
+	}
+
 	.form-footer {
 		text-align: right;
 	}
@@ -196,7 +242,7 @@ wp_enqueue_script(
 </style>
 <?php wp_print_scripts( 'send-to-e-reader-plain-list' ); ?>
 </head>
-<body>
+<body class="<?php echo esc_attr( $compact ? 'plain-list-compact' : 'plain-list-full' ); ?>">
 	<main>
 	<form>
 		<header>
@@ -232,6 +278,10 @@ wp_enqueue_script(
 				<button class="header-download" type="submit"><?php esc_html_e( 'Download', 'send-to-e-reader' ); ?></button>
 			</div>
 		</header>
+		<nav class="view-switcher" aria-label="<?php esc_attr_e( 'View', 'send-to-e-reader' ); ?>">
+			<a href="<?php echo esc_url( $list_url ); ?>"<?php echo ! $compact ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'Default', 'send-to-e-reader' ); ?></a>
+			<a href="<?php echo esc_url( $compact_url ); ?>"<?php echo $compact ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'Compact', 'send-to-e-reader' ); ?></a>
+		</nav>
 
 		<ul class="post-list">
 		<?php foreach ( $args['posts'] as $post ) : ?>

@@ -294,6 +294,18 @@ class Test_Send_To_E_Reader extends TestCase {
 	}
 
 	/**
+	 * Test compact list download URLs are accepted.
+	 */
+	public function test_compact_list_download_url_is_accepted() {
+		update_option( Send_To_E_Reader::DOWNLOAD_PASSWORD_OPTION, 'secret' );
+		$_GET['epubsecret'] = 'compact';
+
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		$this->assertTrue( $send_to_e_reader->enable_download_via_url( false ) );
+	}
+
+	/**
 	 * Test get_post_author_name returns author name for a post.
 	 */
 	public function test_get_post_author_name_returns_string() {
