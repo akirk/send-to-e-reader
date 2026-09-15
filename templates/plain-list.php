@@ -87,11 +87,16 @@ wp_enqueue_script(
 		padding: 8px 14px;
 	}
 
+	.header-controls,
 	.list-actions {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px;
 		justify-content: flex-end;
+	}
+
+	.header-controls {
+		align-items: center;
 	}
 
 	.post-list {
@@ -155,6 +160,7 @@ wp_enqueue_script(
 			display: block;
 		}
 
+		.header-controls,
 		.list-actions {
 			justify-content: flex-start;
 			margin-top: 12px;
@@ -179,11 +185,14 @@ wp_enqueue_script(
 					?>
 				</p>
 			</div>
-			<nav class="list-actions" aria-label="<?php esc_attr_e( 'List actions', 'send-to-e-reader' ); ?>">
-				<a href="#" data-send-to-e-reader-action="reverse-list"><?php esc_html_e( 'Reverse', 'send-to-e-reader' ); ?></a>
-				<a href="#" data-send-to-e-reader-action="select-all"><?php esc_html_e( 'Select all', 'send-to-e-reader' ); ?></a>
-				<a href="#" data-send-to-e-reader-action="select-none"><?php esc_html_e( 'Select none', 'send-to-e-reader' ); ?></a>
-			</nav>
+			<div class="header-controls">
+				<nav class="list-actions" aria-label="<?php esc_attr_e( 'List actions', 'send-to-e-reader' ); ?>">
+					<a href="#" data-send-to-e-reader-action="reverse-list"><?php esc_html_e( 'Reverse', 'send-to-e-reader' ); ?></a>
+					<a href="#" data-send-to-e-reader-action="select-all"><?php esc_html_e( 'Select all', 'send-to-e-reader' ); ?></a>
+					<a href="#" data-send-to-e-reader-action="select-none"><?php esc_html_e( 'Select none', 'send-to-e-reader' ); ?></a>
+				</nav>
+				<button type="submit"><?php esc_html_e( 'Download', 'send-to-e-reader' ); ?></button>
+			</div>
 		</header>
 
 		<ul class="post-list">
