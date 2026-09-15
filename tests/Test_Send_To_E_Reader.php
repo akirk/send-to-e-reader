@@ -264,6 +264,7 @@ class Test_Send_To_E_Reader extends TestCase {
 
 		$this->assertStringContainsString( 'Collected Link', $output );
 		$this->assertStringContainsString( 'June 29, 2026', $output );
+		$this->assertStringContainsString( '1 articles (1 selected)', $output );
 	}
 
 	/**

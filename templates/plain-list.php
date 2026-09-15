@@ -24,6 +24,9 @@ $get_post_display_date = static function ( $post ) use ( $date_format ) {
 	return get_the_time( $date_format, $post );
 };
 
+$selected_count = count( $args['unsent'] );
+$total_count    = count( $args['posts'] );
+
 wp_enqueue_script(
 	'send-to-e-reader-plain-list',
 	plugins_url( 'plain-list.js', dirname( __DIR__ ) . '/send-to-e-reader.php' ),
@@ -55,7 +58,7 @@ wp_enqueue_script(
 	}
 
 	header {
-		align-items: flex-start;
+		align-items: center;
 		border-bottom: 1px solid #d8d2c6;
 		display: flex;
 		gap: 16px;
@@ -68,6 +71,10 @@ wp_enqueue_script(
 		font-size: 1.45rem;
 		line-height: 1.2;
 		margin: 0;
+	}
+
+	.header-title {
+		min-width: 0;
 	}
 
 	button,
@@ -97,6 +104,11 @@ wp_enqueue_script(
 
 	.header-controls {
 		align-items: center;
+		flex: 0 1 360px;
+	}
+
+	.header-download {
+		flex: 0 0 auto;
 	}
 
 	.post-list {
@@ -125,6 +137,7 @@ wp_enqueue_script(
 	}
 
 	.post-meta,
+	.selection-count,
 	.post-summary,
 	.item-actions {
 		color: #5d646d;
@@ -157,13 +170,27 @@ wp_enqueue_script(
 		}
 
 		header {
-			display: block;
+			align-items: flex-start;
+			flex-wrap: wrap;
 		}
 
-		.header-controls,
+		.header-title {
+			flex: 1 1 160px;
+		}
+
+		.header-controls {
+			display: contents;
+		}
+
+		.header-download {
+			order: 1;
+		}
+
 		.list-actions {
+			flex: 1 0 100%;
 			justify-content: flex-start;
 			margin-top: 12px;
+			order: 2;
 		}
 	}
 </style>
@@ -173,14 +200,25 @@ wp_enqueue_script(
 	<main>
 	<form>
 		<header>
-			<div>
+			<div class="header-title">
 				<h1><?php echo esc_html( $args['title'] ); ?></h1>
-				<p class="post-meta">
+				<p class="selection-count" data-send-to-e-reader-selection-count
 					<?php
 					printf(
-						/* translators: %d is the number of posts in the list. */
-						esc_html__( '%d articles', 'send-to-e-reader' ),
-						count( $args['posts'] )
+						'data-selected-template="%s"',
+						/* translators: 1: total article count, 2: selected article count. */
+						esc_attr__( '%1$d articles (%2$d selected)', 'send-to-e-reader' )
+					);
+					?>
+				>
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: 1: total article count, 2: selected article count. */
+							__( '%1$d articles (%2$d selected)', 'send-to-e-reader' ),
+							$total_count,
+							$selected_count
+						)
 					);
 					?>
 				</p>
@@ -191,7 +229,7 @@ wp_enqueue_script(
 					<a href="#" data-send-to-e-reader-action="select-all"><?php esc_html_e( 'Select all', 'send-to-e-reader' ); ?></a>
 					<a href="#" data-send-to-e-reader-action="select-none"><?php esc_html_e( 'Select none', 'send-to-e-reader' ); ?></a>
 				</nav>
-				<button type="submit"><?php esc_html_e( 'Download', 'send-to-e-reader' ); ?></button>
+				<button class="header-download" type="submit"><?php esc_html_e( 'Download', 'send-to-e-reader' ); ?></button>
 			</div>
 		</header>
 
