@@ -231,7 +231,8 @@ abstract class E_Reader {
 		$this->ebook_title = $this->strip_emojis( $this->ebook_title );
 		$this->ebook_author = $this->strip_emojis( $this->ebook_author );
 
-		$url = home_url( '?' . implode( '-', array_map( 'intval', array_column( $posts, 'ID' ) ) ) );
+		$url           = home_url( '?' . implode( '-', array_map( 'intval', array_column( $posts, 'ID' ) ) ) );
+		$generation_id = str_replace( '.', '-', uniqid( 'generated-', true ) );
 
 		foreach ( $posts as $post ) {
 			$post_title = $post->post_title;
@@ -253,8 +254,9 @@ abstract class E_Reader {
 			$this->ebook_author,
 			$chapters,
 			array(
-				'identifier' => $url,
-				'source_url' => $url,
+				'filename_suffix' => $generation_id,
+				'identifier'      => $url . '#' . $generation_id,
+				'source_url'      => $url,
 			)
 		);
 	}

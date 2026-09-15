@@ -48,7 +48,7 @@ class Epub_Builder {
 		}
 
 		$args['base_dir'] = $dir;
-		$filename         = self::build_book_filename( $title, $author );
+		$filename         = self::build_book_filename( $title, $author, isset( $args['filename_suffix'] ) ? $args['filename_suffix'] : '' );
 		$book             = self::build_book( $title, $author, $chapters, $args );
 
 		if ( false === $book->saveBook( $filename . '.epub', $dir ) ) {
@@ -205,12 +205,20 @@ class Epub_Builder {
 	 *
 	 * @param string $title  The book title.
 	 * @param string $author The book author.
+	 * @param string $suffix Optional filename suffix.
 	 * @return string
 	 */
-	private static function build_book_filename( $title, $author ) {
+	private static function build_book_filename( $title, $author, $suffix = '' ) {
 		$filename = sanitize_title( substr( (string) $author, 0, 40 ) . ' - ' . substr( (string) $title, 0, 100 ) );
+		$suffix   = sanitize_title( (string) $suffix );
+		if ( ! $filename ) {
+			$filename = 'ebook';
+		}
+		if ( $suffix ) {
+			$filename .= '-' . $suffix;
+		}
 
-		return $filename ? $filename : 'ebook';
+		return $filename;
 	}
 
 	/**

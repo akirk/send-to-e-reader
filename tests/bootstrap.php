@@ -269,6 +269,23 @@ namespace {
 		return $data;
 	}
 
+	function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $args = array() ) {
+		$GLOBALS['send_to_e_reader_test_scripts'][ $handle ] = compact( 'src', 'deps', 'ver', 'args' );
+		return true;
+	}
+
+	function wp_print_scripts( $handles = false ) {
+		return true;
+	}
+
+	function checked( $checked, $current = true, $display = true ) {
+		$result = (string) $checked === (string) $current ? ' checked="checked"' : '';
+		if ( $display ) {
+			echo $result;
+		}
+		return $result;
+	}
+
 	function add_action( $tag, $function_to_add, $priority = 10, $accepted_args = 1 ) {
 		return true;
 	}
@@ -390,6 +407,10 @@ namespace {
 	}
 
 	function get_bloginfo( $show = '', $filter = 'raw' ) {
+		if ( 'charset' === $show ) {
+			return 'UTF-8';
+		}
+
 		return 'Test Site';
 	}
 
@@ -489,6 +510,19 @@ namespace {
 		return trim( $text );
 	}
 
+	function wp_trim_words( $text, $num_words = 55, $more = null ) {
+		$words = preg_split( '/\s+/', trim( (string) $text ) );
+		if ( count( $words ) <= $num_words ) {
+			return implode( ' ', $words );
+		}
+
+		if ( null === $more ) {
+			$more = '...';
+		}
+
+		return implode( ' ', array_slice( $words, 0, $num_words ) ) . $more;
+	}
+
 	function admin_url( $path = '', $scheme = 'admin' ) {
 		return 'https://example.com/wp-admin/' . $path;
 	}
@@ -544,6 +578,11 @@ namespace {
 
 	function date_i18n( $format, $timestamp = false, $gmt = false ) {
 		return date( $format, $timestamp ? $timestamp : time() );
+	}
+
+	function nocache_headers() {
+		$GLOBALS['send_to_e_reader_test_nocache_headers_sent'] = true;
+		return true;
 	}
 
 	function wp_create_nonce( $action = -1 ) {

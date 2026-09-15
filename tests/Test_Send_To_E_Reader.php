@@ -26,6 +26,10 @@ class Test_Send_To_E_Reader extends TestCase {
 		unset( $GLOBALS['send_to_e_reader_test_options'] );
 		unset( $GLOBALS['send_to_e_reader_test_caps'] );
 		unset( $GLOBALS['send_to_e_reader_test_posts'] );
+		unset( $GLOBALS['send_to_e_reader_test_post_meta'] );
+		unset( $GLOBALS['send_to_e_reader_test_scripts'] );
+		unset( $GLOBALS['send_to_e_reader_test_nocache_headers_sent'] );
+		unset( $_GET['epubsecret'] );
 		parent::tearDown();
 	}
 
@@ -235,6 +239,57 @@ class Test_Send_To_E_Reader extends TestCase {
 		$send_to_e_reader = new Send_To_E_Reader( null );
 		$loader = $send_to_e_reader->get_template_loader();
 		$this->assertIsObject( $loader );
+	}
+
+	/**
+	 * Test that the plain list shows the original article date when available.
+	 */
+	public function test_plain_list_shows_original_article_date() {
+		$post = new \WP_Post();
+		$post->ID = 456;
+		$post->post_title = 'Collected Link';
+		$post->post_content = '<p>A useful article saved for later.</p>';
+		update_post_meta( $post->ID, 'published_time', '2026-06-29T16:44:13+00:00' );
+
+		$args = array(
+			'title'     => 'Reading List',
+			'unsent'    => array( $post->ID => $post ),
+			'posts'     => array( $post->ID => $post ),
+			'inputname' => 'epubsecret',
+		);
+
+		ob_start();
+		include FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'templates/plain-list.php';
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Collected Link', $output );
+		$this->assertStringContainsString( 'June 29, 2026', $output );
+	}
+
+	/**
+	 * Test generated ePub filenames can carry a cache-busting suffix.
+	 */
+	public function test_epub_filename_accepts_generation_suffix() {
+		$method = new \ReflectionMethod( \Send_To_E_Reader\Epub_Builder::class, 'build_book_filename' );
+		$method->setAccessible( true );
+
+		$this->assertSame(
+			'test-author---reading-list-generated-abc',
+			$method->invoke( null, 'Reading List', 'Test Author', 'generated-abc' )
+		);
+	}
+
+	/**
+	 * Test download URLs opt out of page and browser caching.
+	 */
+	public function test_download_url_prevents_response_caching() {
+		update_option( Send_To_E_Reader::DOWNLOAD_PASSWORD_OPTION, 'secret' );
+		$_GET['epubsecret'] = 'list';
+
+		$send_to_e_reader = new Send_To_E_Reader( null );
+
+		$this->assertTrue( $send_to_e_reader->enable_download_via_url( false ) );
+		$this->assertTrue( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE );
 	}
 
 	/**

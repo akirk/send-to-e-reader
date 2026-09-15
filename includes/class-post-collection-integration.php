@@ -306,6 +306,7 @@ class Post_Collection_Integration {
 			return;
 		}
 
+		Send_To_E_Reader::prevent_response_caching();
 		list( $selection, $limit ) = $request;
 
 		// The download password stands in for being logged in here, the same way
