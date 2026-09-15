@@ -683,10 +683,7 @@ class Send_To_E_Reader {
 			$query_vars = $wp_query->query_vars;
 		}
 
-		// Prevent super cache from caching this page.
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
-		}
+		self::prevent_response_caching();
 
 		$query = new \WP_Query(
 			array_merge(
@@ -699,6 +696,19 @@ class Send_To_E_Reader {
 		);
 
 		return $query->get_posts();
+	}
+
+	/**
+	 * Prevent page-cache and browser-cache layers from storing dynamic e-reader responses.
+	 */
+	public static function prevent_response_caching() {
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+
+		if ( function_exists( 'nocache_headers' ) && ! headers_sent() ) {
+			nocache_headers();
+		}
 	}
 
 	/**
@@ -1115,6 +1125,7 @@ class Send_To_E_Reader {
 					'all',
 					'last',
 					'list',
+					'compact',
 				),
 				true
 			)
@@ -1122,6 +1133,7 @@ class Send_To_E_Reader {
 			return $viewable;
 		}
 
+		self::prevent_response_caching();
 		$this->download_request = $request_value;
 		return true;
 	}
@@ -1146,7 +1158,7 @@ class Send_To_E_Reader {
 			return $template;
 		}
 
-		if ( 'list' === $this->download_request ) {
+		if ( in_array( $this->download_request, array( 'list', 'compact' ), true ) ) {
 			$unsent = array();
 			foreach ( $this->get_unsent_posts() as $post ) {
 				if ( in_array( get_post_format( $post ), array( 'video' ), true ) ) {
@@ -1185,6 +1197,7 @@ class Send_To_E_Reader {
 					'unsent'    => $unsent,
 					'posts'     => $posts,
 					'inputname' => 'epub' . get_option( self::DOWNLOAD_PASSWORD_OPTION, hash( 'crc32', wp_salt( 'nonce' ), false ) ),
+					'compact'   => 'compact' === $this->download_request,
 				)
 			);
 			exit;

@@ -40,7 +40,7 @@ class Post_Collection_Integration {
 	 *
 	 * @var array
 	 */
-	private static $selections = array( 'unread', 'new', 'all', 'last', 'list' );
+	private static $selections = array( 'unread', 'new', 'all', 'last', 'list', 'compact' );
 
 	/**
 	 * Constructor.
@@ -274,6 +274,7 @@ class Post_Collection_Integration {
 			'unread'    => __( 'Unread articles', 'send-to-e-reader' ),
 			'unread-10' => __( '10 most recent unread articles', 'send-to-e-reader' ),
 			'new'       => __( 'Articles not yet sent', 'send-to-e-reader' ),
+			'compact'   => __( 'Compact picker on the e-reader', 'send-to-e-reader' ),
 		);
 		?>
 		<details class="pc-e-reader-download-urls">
@@ -306,14 +307,15 @@ class Post_Collection_Integration {
 			return;
 		}
 
+		Send_To_E_Reader::prevent_response_caching();
 		list( $selection, $limit ) = $request;
 
 		// The download password stands in for being logged in here, the same way
 		// it does on the Friends frontend: whoever knows it gets the private
 		// posts too, because that is the point of pulling the unread articles
 		// onto a device that cannot log in.
-		if ( 'list' === $selection ) {
-			$this->render_list( $app, $collection );
+		if ( in_array( $selection, array( 'list', 'compact' ), true ) ) {
+			$this->render_list( $app, $collection, 'compact' === $selection );
 			exit;
 		}
 
@@ -343,8 +345,9 @@ class Post_Collection_Integration {
 	 *
 	 * @param \PostCollection\Post_Collection_App $app        The app instance.
 	 * @param \WP_Term|null                       $collection The collection in context.
+	 * @param bool                                $compact    Whether to render the compact list view.
 	 */
-	private function render_list( $app, $collection ) {
+	private function render_list( $app, $collection, $compact = false ) {
 		$posts  = array();
 		$unsent = array();
 		foreach ( $this->get_posts( $app, 'last', $collection, true, 50 ) as $post ) {
@@ -370,6 +373,7 @@ class Post_Collection_Integration {
 				'unsent'    => $unsent,
 				'posts'     => $posts,
 				'inputname' => $this->send_to_e_reader->get_download_url_var(),
+				'compact'   => $compact,
 			)
 		);
 	}
@@ -610,6 +614,7 @@ class Post_Collection_Integration {
 			'all'       => __( 'All collected articles:', 'send-to-e-reader' ),
 			'last'      => __( 'The last 10 collected articles:', 'send-to-e-reader' ),
 			'list'      => __( 'A list to pick from:', 'send-to-e-reader' ),
+			'compact'   => __( 'A compact list to pick from:', 'send-to-e-reader' ),
 		);
 
 		$base = wp_parse_url( $app->get_home_url(), PHP_URL_PATH );

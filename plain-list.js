@@ -5,6 +5,21 @@
 		document.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
 			checkbox.checked = checked;
 		});
+		updateSelectionCount();
+	}
+
+	function updateSelectionCount() {
+		var count = document.querySelector('[data-send-to-e-reader-selection-count]');
+		var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+		var selected = document.querySelectorAll('input[type="checkbox"]:checked').length;
+
+		if (!count) {
+			return;
+		}
+
+		count.textContent = count.getAttribute('data-selected-template')
+			.replace('%1$d', checkboxes.length)
+			.replace('%2$d', selected);
 	}
 
 	function reverseList() {
@@ -63,4 +78,14 @@
 				break;
 		}
 	});
+
+	document.addEventListener('change', function (event) {
+		if (!event.target.matches('input[type="checkbox"]')) {
+			return;
+		}
+
+		updateSelectionCount();
+	});
+
+	updateSelectionCount();
 }());

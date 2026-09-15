@@ -27,10 +27,11 @@ defined( 'ABSPATH' ) || exit;
 						<?php
 						foreach (
 							array(
-								'all'  => __( 'All posts from this friend:', 'send-to-e-reader' ),
-								'last' => __( 'The last 10 posts from this friend:', 'send-to-e-reader' ),
-								'new'  => __( 'Posts not yet sent from this friend:', 'send-to-e-reader' ),
-								'list' => __( 'List last for manual selection from this friend:', 'send-to-e-reader' ),
+								'all'     => __( 'All posts from this friend:', 'send-to-e-reader' ),
+								'last'    => __( 'The last 10 posts from this friend:', 'send-to-e-reader' ),
+								'new'     => __( 'Posts not yet sent from this friend:', 'send-to-e-reader' ),
+								'list'    => __( 'List last for manual selection from this friend:', 'send-to-e-reader' ),
+								'compact' => __( 'Compact list for manual selection from this friend:', 'send-to-e-reader' ),
 							) as $key => $description
 						) :
 							?>

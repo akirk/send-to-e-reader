@@ -228,7 +228,7 @@ class Test_Post_Collection_Integration extends TestCase {
 
 		$this->assertFalse( $this->call( $integration, 'get_download_request' ) );
 
-		foreach ( array( 'unread', 'new', 'all', 'last', 'list' ) as $selection ) {
+		foreach ( array( 'unread', 'new', 'all', 'last', 'list', 'compact' ) as $selection ) {
 			$_GET['epubsecret'] = $selection;
 			$this->assertSame( array( $selection, null ), $this->call( $integration, 'get_download_request' ) );
 		}
@@ -266,6 +266,7 @@ class Test_Post_Collection_Integration extends TestCase {
 		$this->assertStringContainsString( 'E-reader URLs', $output );
 		$this->assertStringContainsString( 'URL settings', $output );
 		$this->assertStringContainsString( 'https://example.com/post-collection/collected-posts/?epubsecret=list', $output );
+		$this->assertStringContainsString( 'https://example.com/post-collection/collected-posts/?epubsecret=compact', $output );
 		$this->assertStringContainsString( 'https://example.com/post-collection/collected-posts/?epubsecret=unread', $output );
 		$this->assertStringContainsString( 'https://example.com/wp-admin/admin.php?page=send-to-e-reader-settings', $output );
 	}
