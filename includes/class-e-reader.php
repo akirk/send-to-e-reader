@@ -142,7 +142,7 @@ abstract class E_Reader {
 			array(
 				'title'  => $post_title,
 				'author' => $post->author_name,
-				'date'   => get_the_time( 'l, F j, Y', $post ),
+				'date'   => $this->get_post_display_date( $post, 'l, F j, Y' ),
 			)
 		);
 
@@ -159,6 +159,29 @@ abstract class E_Reader {
 		ob_end_clean();
 
 		return $content;
+	}
+
+	/**
+	 * Get the date to show for a post in generated e-reader content.
+	 *
+	 * Collected posts can preserve the original article date as metadata. Prefer
+	 * that value in the chapter byline, while leaving ordinary posts on their
+	 * WordPress publish date.
+	 *
+	 * @param \WP_Post $post   The post.
+	 * @param string   $format Date format.
+	 * @return string Formatted date.
+	 */
+	protected function get_post_display_date( \WP_Post $post, $format ) {
+		$published_time = get_post_meta( $post->ID, 'published_time', true );
+		if ( $published_time ) {
+			$timestamp = is_numeric( $published_time ) ? (int) $published_time : strtotime( (string) $published_time );
+			if ( $timestamp ) {
+				return date_i18n( $format, $timestamp );
+			}
+		}
+
+		return get_the_time( $format, $post );
 	}
 
 	protected function update_author_name( \WP_Post $post ) {

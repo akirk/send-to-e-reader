@@ -187,6 +187,22 @@ class Test_E_Reader extends TestCase {
 	}
 
 	/**
+	 * Test collected article dates replace the saved post date in chapter bylines.
+	 */
+	public function test_collected_article_date_replaces_post_date_in_chapter_byline() {
+		$post = new \WP_Post();
+		$post->ID = 124;
+		$post->post_author = 1;
+		update_post_meta( $post->ID, 'published_time', '2026-06-29T16:44:13+00:00' );
+
+		$ereader = new E_Reader_Download( 'Test' );
+		$method = new \ReflectionMethod( $ereader, 'get_post_display_date' );
+		$method->setAccessible( true );
+
+		$this->assertSame( 'Monday, June 29, 2026', $method->invoke( $ereader, $post, 'l, F j, Y' ) );
+	}
+
+	/**
 	 * Test same-site upload image URLs are embedded in generated ePubs.
 	 */
 	public function test_epub_builder_embeds_same_site_upload_images() {
