@@ -11,6 +11,14 @@ use Send_To_E_Reader\E_Reader_Generic_Email;
 use Send_To_E_Reader\Post_Collection_Integration;
 use Send_To_E_Reader\Send_To_E_Reader;
 
+if ( ! class_exists( 'WP_Term' ) ) {
+	class WP_Term {
+		public $term_id = 0;
+		public $name = '';
+		public $slug = '';
+	}
+}
+
 /**
  * Test class for Post_Collection_Integration.
  */
@@ -85,6 +93,7 @@ class Test_Post_Collection_Integration extends TestCase {
 	private function get_app_spy() {
 		return new class() {
 			public $args = array();
+			public $can_manage = true;
 
 			public function get_unread_posts( $collection = null, array $args = array() ) {
 				$this->args = $args;
@@ -96,6 +105,14 @@ class Test_Post_Collection_Integration extends TestCase {
 				$this->args = $args;
 
 				return array();
+			}
+
+			public function can_manage_collections() {
+				return $this->can_manage;
+			}
+
+			public function get_collection_url( $collection, $post_id = null ) {
+				return 'https://example.com/post-collection/' . rawurlencode( $collection->slug ) . '/';
 			}
 		};
 	}
@@ -228,5 +245,44 @@ class Test_Post_Collection_Integration extends TestCase {
 
 		$_GET['epubsecret'] = array( '4', '0', 'seven', '9' );
 		$this->assertSame( array( array( 4, 9 ), null ), $this->call( $integration, 'get_download_request' ) );
+	}
+
+	/**
+	 * Test that the integration exposes collection-specific download URLs.
+	 */
+	public function test_download_urls_are_exposed_on_the_collection_frontend() {
+		update_option( Send_To_E_Reader::DOWNLOAD_PASSWORD_OPTION, 'secret' );
+		$integration = $this->get_integration();
+		$app         = $this->get_app_spy();
+		$collection  = new WP_Term();
+		$collection->term_id = 12;
+		$collection->name    = 'Collected Posts';
+		$collection->slug    = 'collected-posts';
+
+		ob_start();
+		$integration->download_urls( $app, $collection );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'E-reader URLs', $output );
+		$this->assertStringContainsString( 'URL settings', $output );
+		$this->assertStringContainsString( 'https://example.com/post-collection/collected-posts/?epubsecret=list', $output );
+		$this->assertStringContainsString( 'https://example.com/post-collection/collected-posts/?epubsecret=unread', $output );
+		$this->assertStringContainsString( 'https://example.com/wp-admin/admin.php?page=send-to-e-reader-settings', $output );
+	}
+
+	/**
+	 * Test that visitors never see the password-bearing download URLs.
+	 */
+	public function test_download_urls_are_only_exposed_to_collection_managers() {
+		$integration = $this->get_integration();
+		$app         = $this->get_app_spy();
+		$app->can_manage = false;
+		$collection  = new WP_Term();
+
+		ob_start();
+		$integration->download_urls( $app, $collection );
+		$output = ob_get_clean();
+
+		$this->assertSame( '', $output );
 	}
 }

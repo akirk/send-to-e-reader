@@ -96,6 +96,19 @@ class Post_Collection_Integration {
 
 		add_action( 'post_collection_app_item_actions', array( $this, 'item_actions' ), 10, 2 );
 		add_action( 'post_collection_app_selection_actions', array( $this, 'selection_actions' ), 10, 2 );
+		add_action( 'post_collection_app_download_urls', array( $this, 'download_urls' ), 10, 2 );
+
+		if ( function_exists( 'wp_app_enqueue_style' ) ) {
+			$file = 'post-collection-e-reader.css';
+			$path = SEND_TO_E_READER_PLUGIN_DIR . $file;
+			wp_app_enqueue_style(
+				'send-to-e-reader-post-collection',
+				plugins_url( $file, SEND_TO_E_READER_PLUGIN_DIR . 'send-to-e-reader.php' ),
+				array(),
+				file_exists( $path ) ? filemtime( $path ) : SEND_TO_E_READER_VERSION,
+				\PostCollection\Post_Collection_App::PATH
+			);
+		}
 
 		if ( function_exists( 'wp_app_enqueue_script' ) ) {
 			$file = 'post-collection-e-reader.js';
@@ -240,6 +253,45 @@ class Post_Collection_Integration {
 			_x( 'Send to %s', 'e-reader', 'send-to-e-reader' ),
 			$ereader->get_name()
 		);
+	}
+
+	/**
+	 * Render the e-reader download URLs on a Post Collection collection page.
+	 *
+	 * @param \PostCollection\Post_Collection_App $app        The app instance.
+	 * @param \WP_Term                            $collection The collection in context.
+	 */
+	public function download_urls( $app, $collection ) {
+		if ( ! $app->can_manage_collections() || ! $collection instanceof \WP_Term ) {
+			return;
+		}
+
+		$url_var      = $this->send_to_e_reader->get_download_url_var();
+		$settings_url = admin_url( 'admin.php?page=send-to-e-reader-settings' );
+		$base_url     = $app->get_collection_url( $collection );
+		$urls         = array(
+			'list'      => __( 'Pick articles on the e-reader', 'send-to-e-reader' ),
+			'unread'    => __( 'Unread articles', 'send-to-e-reader' ),
+			'unread-10' => __( '10 most recent unread articles', 'send-to-e-reader' ),
+			'new'       => __( 'Articles not yet sent', 'send-to-e-reader' ),
+		);
+		?>
+		<details class="pc-e-reader-download-urls">
+			<summary>
+				<strong><?php esc_html_e( 'E-reader URLs', 'send-to-e-reader' ); ?></strong>
+				<a class="pc-e-reader-settings-link" href="<?php echo esc_url( $settings_url ); ?>"><?php esc_html_e( 'URL settings', 'send-to-e-reader' ); ?></a>
+			</summary>
+			<ul>
+				<?php foreach ( $urls as $selection => $label ) : ?>
+					<li>
+						<?php $url = add_query_arg( $url_var, $selection, $base_url ); ?>
+						<span><?php echo esc_html( $label ); ?></span>
+						<a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $url ); ?></a>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</details>
+		<?php
 	}
 
 	/**
