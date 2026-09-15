@@ -1,0 +1,50 @@
+.pc-e-reader-download-urls {
+	margin: 16px 0;
+	padding: 10px 12px;
+	border: 1px solid var(--pc-color-border);
+	border-radius: 8px;
+	background: var(--pc-color-surface);
+}
+
+.pc-e-reader-download-urls summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px 16px;
+	cursor: pointer;
+}
+
+.pc-e-reader-download-urls .pc-e-reader-settings-link {
+	font-size: 0.9em;
+	font-weight: 400;
+	color: var(--pc-color-muted);
+}
+
+.pc-e-reader-download-urls .pc-e-reader-settings-link:hover,
+.pc-e-reader-download-urls .pc-e-reader-settings-link:focus {
+	color: var(--pc-color-primary);
+}
+
+.pc-e-reader-download-urls ul {
+	display: grid;
+	gap: 6px;
+	margin: 10px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.pc-e-reader-download-urls li {
+	display: grid;
+	grid-template-columns: minmax(130px, max-content) minmax(0, 1fr);
+	gap: 8px 14px;
+	align-items: baseline;
+}
+
+.pc-e-reader-download-urls li span {
+	color: var(--pc-color-muted);
+}
+
+.pc-e-reader-download-urls li a {
+	overflow-wrap: anywhere;
+}
