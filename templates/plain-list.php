@@ -27,8 +27,6 @@ $get_post_display_date = static function ( $post ) use ( $date_format ) {
 $selected_count = count( $args['unsent'] );
 $total_count    = count( $args['posts'] );
 $compact        = ! empty( $args['compact'] );
-$list_url       = add_query_arg( $args['inputname'], 'list' );
-$compact_url    = add_query_arg( $args['inputname'], 'compact' );
 
 wp_enqueue_script(
 	'send-to-e-reader-plain-list',
@@ -98,8 +96,7 @@ wp_enqueue_script(
 	}
 
 	.header-controls,
-	.list-actions,
-	.view-switcher {
+	.list-actions {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px;
@@ -164,46 +161,69 @@ wp_enqueue_script(
 		overflow-wrap: anywhere;
 	}
 
-	.view-switcher {
-		color: #5d646d;
-		font-size: .92rem;
-		margin-bottom: 14px;
+	.plain-list-compact {
+		line-height: 1.3;
 	}
 
-	.view-switcher [aria-current="page"] {
-		color: #1f2328;
-		font-weight: 700;
-		text-decoration: none;
+	.plain-list-compact main {
+		max-width: 720px;
+		padding: 12px 16px;
+	}
+
+	.plain-list-compact header {
+		gap: 10px;
+		margin-bottom: 10px;
+		padding-bottom: 10px;
+	}
+
+	.plain-list-compact h1 {
+		font-size: 1.18rem;
+	}
+
+	.plain-list-compact .selection-count,
+	.plain-list-compact .list-actions {
+		font-size: .82rem;
+	}
+
+	.plain-list-compact button {
+		border-radius: 4px;
+		padding: 5px 9px;
 	}
 
 	.plain-list-compact .post-list {
-		gap: 6px;
+		gap: 0;
+		margin-bottom: 12px;
 	}
 
 	.plain-list-compact .post-item {
-		border-radius: 6px;
-		gap: 8px;
-		padding: 8px 10px;
+		background: transparent;
+		border: 0;
+		border-bottom: 1px solid #d8d2c6;
+		border-radius: 0;
+		gap: 7px;
+		padding: 5px 0;
+	}
+
+	.plain-list-compact input[type="checkbox"] {
+		margin-top: 2px;
 	}
 
 	.plain-list-compact .post-title {
 		display: inline;
-		font-size: .98rem;
+		font-size: .9rem;
 		margin: 0;
 	}
 
 	.plain-list-compact .post-meta {
 		display: inline;
-		margin-left: 6px;
+		font-size: .78rem;
+		margin-left: 4px;
 	}
 
 	.plain-list-compact .post-summary,
-	.plain-list-compact .post-url {
-		display: none;
-	}
-
+	.plain-list-compact .post-url,
 	.plain-list-compact .item-actions {
-		margin-top: 3px;
+		display: none;
 	}
 
 	.form-footer {
@@ -278,11 +298,6 @@ wp_enqueue_script(
 				<button class="header-download" type="submit"><?php esc_html_e( 'Download', 'send-to-e-reader' ); ?></button>
 			</div>
 		</header>
-		<nav class="view-switcher" aria-label="<?php esc_attr_e( 'View', 'send-to-e-reader' ); ?>">
-			<a href="<?php echo esc_url( $list_url ); ?>"<?php echo ! $compact ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'Default', 'send-to-e-reader' ); ?></a>
-			<a href="<?php echo esc_url( $compact_url ); ?>"<?php echo $compact ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'Compact', 'send-to-e-reader' ); ?></a>
-		</nav>
-
 		<ul class="post-list">
 		<?php foreach ( $args['posts'] as $post ) : ?>
 				<li class="post-item">
