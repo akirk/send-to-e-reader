@@ -12,6 +12,11 @@
 		var count = document.querySelector('[data-send-to-e-reader-selection-count]');
 		var checkboxes = document.querySelectorAll('input[type="checkbox"]');
 		var selected = document.querySelectorAll('input[type="checkbox"]:checked').length;
+		var downloadButtons = document.querySelectorAll('form button[type="submit"]');
+
+		downloadButtons.forEach(function (button) {
+			button.disabled = selected === 0;
+		});
 
 		if (!count) {
 			return;
@@ -85,6 +90,12 @@
 		}
 
 		updateSelectionCount();
+	});
+
+	document.addEventListener('submit', function (event) {
+		if (event.target.matches('form') && !event.target.querySelector('input[type="checkbox"]:checked')) {
+			event.preventDefault();
+		}
 	});
 
 	updateSelectionCount();

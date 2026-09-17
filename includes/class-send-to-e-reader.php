@@ -1112,25 +1112,24 @@ class Send_To_E_Reader {
 
 	public function enable_download_via_url( $viewable ) {
 		$ereader_url_var = $this->get_download_url_var();
+		// The initial picker URL, and a POST with no checked boxes, carry the selection in GET.
 		if ( ! isset( $_GET[ $ereader_url_var ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public download URL with password in parameter name.
 			return $viewable;
 		}
 		$request_value = wp_unslash( $_GET[ $ereader_url_var ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated via allowlist below.
-		if (
-			! is_array( $request_value )
-			&& ! in_array(
-				$request_value,
-				array(
-					'new',
-					'all',
-					'last',
-					'list',
-					'compact',
-				),
-				true
-			)
-		) {
+		if ( ! in_array( $request_value, array( 'new', 'all', 'last', 'list', 'compact' ), true ) ) {
 			return $viewable;
+		}
+
+		// Checked boxes are submitted in POST while the picker URL stays in GET.
+		if ( in_array( $request_value, array( 'list', 'compact' ), true ) && isset( $_POST[ $ereader_url_var ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- password in URL authorizes this download.
+			$posted_ids = wp_unslash( $_POST[ $ereader_url_var ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- cast to integers below.
+			if ( is_array( $posted_ids ) ) {
+				$ids = array_values( array_filter( array_map( 'intval', $posted_ids ) ) );
+				if ( $ids ) {
+					$request_value = $ids;
+				}
+			}
 		}
 
 		self::prevent_response_caching();

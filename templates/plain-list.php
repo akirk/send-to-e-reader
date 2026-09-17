@@ -95,6 +95,11 @@ wp_enqueue_script(
 		padding: 8px 14px;
 	}
 
+	button:disabled {
+		cursor: default;
+		opacity: .5;
+	}
+
 	.header-controls,
 	.list-actions {
 		display: flex;
@@ -106,6 +111,18 @@ wp_enqueue_script(
 	.header-controls {
 		align-items: center;
 		flex: 0 1 360px;
+	}
+
+	.list-actions {
+		gap: 0;
+	}
+
+	.list-actions a {
+		margin-right: 10px;
+	}
+
+	.list-actions a:last-child {
+		margin-right: 0;
 	}
 
 	.header-download {
@@ -264,7 +281,7 @@ wp_enqueue_script(
 </head>
 <body class="<?php echo esc_attr( $compact ? 'plain-list-compact' : 'plain-list-full' ); ?>">
 	<main>
-	<form>
+	<form method="post">
 		<header>
 			<div class="header-title">
 				<h1><?php echo esc_html( $args['title'] ); ?></h1>

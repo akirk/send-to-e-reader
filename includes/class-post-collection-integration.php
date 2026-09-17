@@ -391,18 +391,27 @@ class Post_Collection_Integration {
 	 */
 	private function get_download_request() {
 		$url_var = $this->send_to_e_reader->get_download_url_var();
+		// The initial picker URL, and a POST with no checked boxes, carry the selection in GET.
 		if ( ! isset( $_GET[ $url_var ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public download URL with the password in the parameter name.
 			return false;
 		}
 
 		$value = wp_unslash( $_GET[ $url_var ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated below.
-		if ( is_array( $value ) ) {
-			$ids = array_values( array_filter( array_map( 'intval', $value ) ) );
-
-			return empty( $ids ) ? false : array( $ids, null );
+		if ( ! is_string( $value ) ) {
+			return false;
 		}
 
 		$value = sanitize_key( $value );
+		// Checked boxes are submitted in POST while the picker URL stays in GET.
+		if ( in_array( $value, array( 'list', 'compact' ), true ) && isset( $_POST[ $url_var ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- password in URL authorizes this download.
+			$posted_ids = wp_unslash( $_POST[ $url_var ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- cast to integers below.
+			if ( is_array( $posted_ids ) ) {
+				$ids = array_values( array_filter( array_map( 'intval', $posted_ids ) ) );
+				if ( $ids ) {
+					return array( $ids, null );
+				}
+			}
+		}
 		$limit = null;
 
 		if ( preg_match( '/^([a-z]+)-([0-9]+)$/', $value, $matches ) ) {
