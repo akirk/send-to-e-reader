@@ -95,6 +95,11 @@ wp_enqueue_script(
 		padding: 8px 14px;
 	}
 
+	button:disabled {
+		cursor: default;
+		opacity: .5;
+	}
+
 	.header-controls,
 	.list-actions {
 		display: flex;
@@ -264,7 +269,7 @@ wp_enqueue_script(
 </head>
 <body class="<?php echo esc_attr( $compact ? 'plain-list-compact' : 'plain-list-full' ); ?>">
 	<main>
-	<form>
+	<form method="post">
 		<header>
 			<div class="header-title">
 				<h1><?php echo esc_html( $args['title'] ); ?></h1>

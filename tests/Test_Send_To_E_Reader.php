@@ -30,6 +30,7 @@ class Test_Send_To_E_Reader extends TestCase {
 		unset( $GLOBALS['send_to_e_reader_test_scripts'] );
 		unset( $GLOBALS['send_to_e_reader_test_nocache_headers_sent'] );
 		unset( $_GET['epubsecret'] );
+		unset( $_POST['epubsecret'] );
 		parent::tearDown();
 	}
 
@@ -265,6 +266,8 @@ class Test_Send_To_E_Reader extends TestCase {
 		$this->assertStringContainsString( 'Collected Link', $output );
 		$this->assertStringContainsString( 'June 29, 2026', $output );
 		$this->assertStringContainsString( '1 articles (1 selected)', $output );
+		$this->assertStringContainsString( '<form method="post">', $output );
+		$this->assertStringContainsString( 'name="epubsecret[]" value="456"', $output );
 	}
 
 	/**
@@ -303,6 +306,27 @@ class Test_Send_To_E_Reader extends TestCase {
 		$send_to_e_reader = new Send_To_E_Reader( null );
 
 		$this->assertTrue( $send_to_e_reader->enable_download_via_url( false ) );
+	}
+
+	/**
+	 * Test that a POST to the password-backed picker downloads selected posts only.
+	 */
+	public function test_picker_post_keeps_an_empty_selection_on_the_list() {
+		update_option( Send_To_E_Reader::DOWNLOAD_PASSWORD_OPTION, 'secret' );
+		$_GET['epubsecret'] = 'list';
+		$send_to_e_reader = new Send_To_E_Reader( null );
+		$request = new \ReflectionProperty( Send_To_E_Reader::class, 'download_request' );
+		$request->setAccessible( true );
+
+		$this->assertTrue( $send_to_e_reader->enable_download_via_url( false ) );
+		$this->assertSame( 'list', $request->getValue( $send_to_e_reader ) );
+
+		$_POST['epubsecret'] = array( '4', '9' );
+		$this->assertTrue( $send_to_e_reader->enable_download_via_url( false ) );
+		$this->assertSame( array( 4, 9 ), $request->getValue( $send_to_e_reader ) );
+
+		$_GET['epubsecret'] = array( '4', '9' );
+		$this->assertFalse( $send_to_e_reader->enable_download_via_url( false ) );
 	}
 
 	/**

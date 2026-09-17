@@ -30,6 +30,7 @@ class Test_Post_Collection_Integration extends TestCase {
 		unset( $GLOBALS['send_to_e_reader_test_caps'] );
 		unset( $GLOBALS['send_to_e_reader_test_posts'] );
 		unset( $_GET['epubsecret'] );
+		unset( $_POST['epubsecret'] );
 		parent::tearDown();
 	}
 
@@ -243,8 +244,14 @@ class Test_Post_Collection_Integration extends TestCase {
 		$_GET['epubsecret'] = 'everything-3';
 		$this->assertFalse( $this->call( $integration, 'get_download_request' ) );
 
-		$_GET['epubsecret'] = array( '4', '0', 'seven', '9' );
+		$_GET['epubsecret'] = 'list';
+		$this->assertSame( array( 'list', null ), $this->call( $integration, 'get_download_request' ) );
+		$_POST['epubsecret'] = array( '4', '9' );
 		$this->assertSame( array( array( 4, 9 ), null ), $this->call( $integration, 'get_download_request' ) );
+		unset( $_POST['epubsecret'] );
+
+		$_GET['epubsecret'] = array( '4', '0', 'seven', '9' );
+		$this->assertFalse( $this->call( $integration, 'get_download_request' ) );
 	}
 
 	/**
