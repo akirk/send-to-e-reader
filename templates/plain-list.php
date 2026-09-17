@@ -113,6 +113,18 @@ wp_enqueue_script(
 		flex: 0 1 360px;
 	}
 
+	.list-actions {
+		gap: 0;
+	}
+
+	.list-actions a {
+		margin-right: 10px;
+	}
+
+	.list-actions a:last-child {
+		margin-right: 0;
+	}
+
 	.header-download {
 		flex: 0 0 auto;
 	}
