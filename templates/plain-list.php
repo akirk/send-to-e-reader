@@ -121,10 +121,6 @@ wp_enqueue_script(
 		margin-right: 10px;
 	}
 
-	.list-actions a:last-child {
-		margin-right: 0;
-	}
-
 	.header-download {
 		flex: 0 0 auto;
 	}
