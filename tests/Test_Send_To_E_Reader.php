@@ -20,6 +20,7 @@ class Test_Send_To_E_Reader extends TestCase {
 	public function tearDown(): void {
 		remove_all_filters( 'friends_override_author_name' );
 		remove_all_filters( 'send_to_e_reader_post_content' );
+		remove_all_filters( 'send_to_e_reader_post_url' );
 		remove_all_filters( 'static_archive_post_types' );
 		remove_all_filters( 'static_archive_post_html' );
 		remove_all_filters( 'send_to_e_reader_user_can_send' );
@@ -259,11 +260,23 @@ class Test_Send_To_E_Reader extends TestCase {
 			'inputname' => 'epubsecret',
 		);
 
+		add_filter(
+			'send_to_e_reader_post_url',
+			function ( $url, $item ) use ( $post ) {
+				$this->assertSame( $post, $item );
+				return 'https://original.example/article/?a=1&b=2';
+			},
+			10,
+			2
+		);
+
 		ob_start();
 		include FRIENDS_SEND_TO_E_READER_PLUGIN_DIR . 'templates/plain-list.php';
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Collected Link', $output );
+		$this->assertStringContainsString( '<a class="post-url" href="https://original.example/article/?a=1&amp;b=2">https://original.example/article/?a=1&amp;b=2</a>', $output );
+		$this->assertStringNotContainsString( get_permalink( $post ), $output );
 		$this->assertStringContainsString( 'June 29, 2026', $output );
 		$this->assertStringContainsString( '1 articles (1 selected)', $output );
 		$this->assertStringContainsString( '<form method="post">', $output );
