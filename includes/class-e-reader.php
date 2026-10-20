@@ -152,13 +152,23 @@ abstract class E_Reader {
 			$format . '/footer',
 			null,
 			array(
-				'url' => get_permalink( $post ),
+				'url' => $this->get_post_source_url( $post ),
 			)
 		);
 		$content = ob_get_contents();
 		ob_end_clean();
 
 		return $content;
+	}
+
+	/**
+	 * Resolve the source URL for the chapter footer.
+	 *
+	 * @param \WP_Post $post The post.
+	 * @return string
+	 */
+	protected function get_post_source_url( \WP_Post $post ) {
+		return apply_filters( 'send_to_e_reader_post_url', get_permalink( $post ), $post );
 	}
 
 	/**
@@ -192,7 +202,7 @@ abstract class E_Reader {
 			if ( $override_author_name ) {
 				$author_name = $override_author_name;
 			}
-			$post->author_name = $author_name;
+			$post->author_name = apply_filters( 'send_to_e_reader_post_author_name', $author_name, $post );
 		}
 		return $post->author_name;
 	}

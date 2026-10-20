@@ -19,6 +19,8 @@ class Test_E_Reader extends TestCase {
 
 	public function tearDown(): void {
 		remove_all_filters( 'friends_override_author_name' );
+		remove_all_filters( 'send_to_e_reader_post_url' );
+		remove_all_filters( 'send_to_e_reader_post_author_name' );
 		unset( $GLOBALS['_test_upload_basedir'], $GLOBALS['_test_upload_baseurl'] );
 		parent::tearDown();
 	}
@@ -184,6 +186,38 @@ class Test_E_Reader extends TestCase {
 
 		$this->assertSame( 'Zetaphor', $method->invoke( $ereader, $post ) );
 		$this->assertSame( 'Zetaphor', $post->author_name );
+	}
+
+	public function test_chapter_url_and_author_can_be_filtered() {
+		$post = new \WP_Post();
+		$post->ID = 125;
+		$post->post_author = 1;
+		$ereader = new E_Reader_Download( 'Test' );
+		$url = new \ReflectionMethod( $ereader, 'get_post_source_url' );
+		$url->setAccessible( true );
+		$this->assertSame( get_permalink( $post ), $url->invoke( $ereader, $post ) );
+		add_filter(
+			'send_to_e_reader_post_url',
+			function ( $url, $item ) use ( $post ) {
+				$this->assertSame( $post, $item );
+				return 'https://original.example/article/';
+			},
+			10,
+			2
+		);
+		add_filter(
+			'send_to_e_reader_post_author_name',
+			function ( $author, $item ) use ( $post ) {
+				$this->assertSame( $post, $item );
+				return 'Alexander Aidun';
+			},
+			10,
+			2
+		);
+		$author = new \ReflectionMethod( $ereader, 'update_author_name' );
+		$author->setAccessible( true );
+		$this->assertSame( 'Alexander Aidun', $author->invoke( $ereader, $post ) );
+		$this->assertSame( 'https://original.example/article/', $url->invoke( $ereader, $post ) );
 	}
 
 	/**

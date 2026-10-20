@@ -313,6 +313,7 @@ wp_enqueue_script(
 		</header>
 		<ul class="post-list">
 		<?php foreach ( $args['posts'] as $post ) : ?>
+			<?php $post_url = apply_filters( 'send_to_e_reader_post_url', get_permalink( $post ), $post ); ?>
 				<li class="post-item">
 				<input type="checkbox" name="<?php echo esc_attr( $args['inputname'] ); ?>[]" value="<?php echo esc_attr( $post->ID ); ?>" <?php checked( isset( $args['unsent'][ $post->ID ] ) ); ?> aria-label="<?php echo esc_attr( get_the_title( $post ) ); ?>" />
 				<div>
@@ -320,7 +321,7 @@ wp_enqueue_script(
 					<p class="post-meta"><?php echo esc_html( $get_post_display_date( $post ) ); ?></p>
 					<p class="post-summary"><?php echo esc_html( wp_trim_words( wp_strip_all_tags( $post->post_content ) ) ); ?></p>
 					<div class="item-actions">
-						<a class="post-url" href="<?php echo esc_url( get_the_permalink( $post ) ); ?>"><?php echo esc_html( get_the_permalink( $post ) ); ?></a>
+						<a class="post-url" href="<?php echo esc_url( $post_url ); ?>"><?php echo esc_html( $post_url ); ?></a>
 						<a href="#" data-send-to-e-reader-action="move-up"><?php esc_html_e( 'Move up', 'send-to-e-reader' ); ?></a>
 						<a href="#" data-send-to-e-reader-action="move-down"><?php esc_html_e( 'Move down', 'send-to-e-reader' ); ?></a>
 					</div>
